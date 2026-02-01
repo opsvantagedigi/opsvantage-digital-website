@@ -1,34 +1,51 @@
-import React from 'react';
+// GOVERNANCE: Centralized Type Definitions
+// This file acts as the single source of truth for shared types across the application.
 
-// GOVERNANCE: Type Safety Protocol
-// All interfaces must be explicit to ensure future maintainers understand the data structures.
+export type AppView = 'landing' | 'auth' | 'dashboard' | 'builder' | 'preview';
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+}
+
+export interface WebsiteSection {
+  id: string;
+  type: string;
+  content: {
+    title?: string;
+    text?: string;
+    image?: string;
+    items?: { title: string; text: string }[];
+  };
+}
+
+export interface Website {
+  id: string;
+  name: string;
+  niche: string;
+  sections: WebsiteSection[];
+  themeColor: string;
+}
 
 export interface NavItem {
   label: string;
   path: string;
 }
 
-export interface ServiceItem {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  tags: string[];
+export interface ProjectCase {
+    id: string;
+    client: string;
+    title: string;
+    metric: string;
+    imageUrl: string;
 }
 
 export interface InsightPost {
-  id: string;
-  title: string;
-  summary: string;
-  date: string;
-  category: "Stewardship" | "Tech" | "Strategy";
-  readTime: string;
-}
-
-export interface ProjectCase {
-  id: string;
-  client: string;
-  title: string;
-  metric: string;
-  imageUrl: string;
+    id: string;
+    title: string;
+    summary: string;
+    date: string;
+    category: string;
+    readTime: string;
 }

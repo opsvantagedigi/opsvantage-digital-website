@@ -1,1072 +1,472 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI, LiveServerMessage, Modality, Type } from '@google/genai';
-import { MagneticButton } from '../components/ui/MagneticButton';
-import { BentoGrid, BentoItem } from '../components/ui/BentoGrid';
-import { Mic, Video, Image as ImageIcon, Brain, Loader2, Play, PenTool, Key, Eye, EyeOff, AlertCircle, CheckCircle2, XCircle, Activity, Layout, Code, DollarSign, Terminal } from 'lucide-react';
-
-// --- TYPES ---
-
-interface GenAIBlob {
-  data: string;
-  mimeType: string;
-}
-
-interface Notification {
-  message: string;
-  type: 'info' | 'error' | 'success';
-  id: number;
-}
-
-interface ModuleProps {
-  apiKey: string;
-  notify: (msg: string, type?: 'info' | 'error' | 'success') => void;
-}
-
-// --- UTILS ---
-
-async function fileToGenerativePart(file: File): Promise<{ inlineData: { data: string; mimeType: string } }> {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = (reader.result as string).split(',')[1];
-      resolve({
-        inlineData: {
-          data: base64String,
-          mimeType: file.type,
-        },
-      });
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-function createBlob(data: Float32Array): GenAIBlob {
-  const l = data.length;
-  const int16 = new Int16Array(l);
-  for (let i = 0; i < l; i++) {
-    int16[i] = data[i] * 32768;
-  }
-  return {
-    data: btoa(String.fromCharCode(...new Uint8Array(int16.buffer))),
-    mimeType: 'audio/pcm;rate=16000',
-  };
-}
-
-function decodeAudio(base64: string): Uint8Array {
-  const binaryString = atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
-}
-
-async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number = 24000, numChannels: number = 1): Promise<AudioBuffer> {
-  const dataInt16 = new Int16Array(data.buffer);
-  const frameCount = dataInt16.length / numChannels;
-  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
-
-  for (let channel = 0; channel < numChannels; channel++) {
-    const channelData = buffer.getChannelData(channel);
-    for (let i = 0; i < frameCount; i++) {
-      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
-    }
-  }
-  return buffer;
-}
-
-// --- MODULES ---
-
-const VoiceModule: React.FC<ModuleProps> = ({ apiKey, notify }) => {
-  const [isConnected, setIsConnected] = useState(false);
-  const [status, setStatus] = useState('Standby');
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const sessionRef = useRef<any>(null);
-  const inputContextRef = useRef<AudioContext | null>(null);
-  const outputContextRef = useRef<AudioContext | null>(null);
-
-  const startSession = async () => {
-    if (!apiKey) {
-        notify("Neural Key Required for Voice Protocol.", 'error');
-        return;
-    }
-    
-    try {
-      setStatus('Initializing Protocol...');
-      notify("Establishing secure link to Gemini...", 'info');
-      
-      const ai = new GoogleGenAI({ apiKey });
-      
-      const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-      const outputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      inputContextRef.current = inputCtx;
-      outputContextRef.current = outputCtx;
-
-      const outputNode = outputCtx.createGain();
-      outputNode.connect(outputCtx.destination);
-      let nextStartTime = 0;
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-      }
-      
-      const source = inputCtx.createMediaStreamSource(stream);
-      const scriptProcessor = inputCtx.createScriptProcessor(4096, 1, 1);
-      
-      source.connect(scriptProcessor);
-      scriptProcessor.connect(inputCtx.destination);
-
-      const sessionPromise = ai.live.connect({
-        model: 'gemini-2.5-flash-native-audio-preview-12-2025',
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
-          systemInstruction: "You are Sentient Titan, a helpful and legacy-grade AI assistant. Your voice is calm, authoritative, and warm."
-        },
-        callbacks: {
-          onopen: () => {
-            setStatus('Titan Online');
-            notify("Voice Link Active.", 'success');
-            setIsConnected(true);
-          },
-          onmessage: async (msg: LiveServerMessage) => {
-              const base64Audio = msg.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-              if (base64Audio) {
-                 try {
-                     nextStartTime = Math.max(nextStartTime, outputCtx.currentTime);
-                     const audioBuffer = await decodeAudioData(decodeAudio(base64Audio), outputCtx);
-                     const bufSource = outputCtx.createBufferSource();
-                     bufSource.buffer = audioBuffer;
-                     bufSource.connect(outputNode);
-                     bufSource.start(nextStartTime);
-                     nextStartTime += audioBuffer.duration;
-                 } catch (e) {
-                     console.error("Audio decode error", e);
-                 }
-              }
-          },
-          onclose: () => {
-            setStatus('Session Terminated');
-            setIsConnected(false);
-          },
-          onerror: (e) => {
-            console.error(e);
-            setStatus('Connection Error');
-            notify("Voice stream interrupted.", 'error');
-          }
-        }
-      });
-
-      sessionRef.current = sessionPromise;
-
-      scriptProcessor.onaudioprocess = (e) => {
-        const inputData = e.inputBuffer.getChannelData(0);
-        const blob = createBlob(inputData);
-        sessionPromise.then(session => session.sendRealtimeInput({ media: blob }));
-      };
-
-      const videoInterval = setInterval(async () => {
-          if (!canvasRef.current || !videoRef.current) return;
-          const ctx = canvasRef.current.getContext('2d');
-          if (!ctx) return;
-          
-          canvasRef.current.width = videoRef.current.videoWidth;
-          canvasRef.current.height = videoRef.current.videoHeight;
-          ctx.drawImage(videoRef.current, 0, 0);
-          
-          const base64 = canvasRef.current.toDataURL('image/jpeg', 0.5).split(',')[1];
-          sessionPromise.then(session => session.sendRealtimeInput({ 
-              media: { mimeType: 'image/jpeg', data: base64 } 
-          }));
-      }, 1000);
-
-      (sessionRef.current as any)._cleanup = () => {
-          clearInterval(videoInterval);
-          scriptProcessor.disconnect();
-          source.disconnect();
-          stream.getTracks().forEach(t => t.stop());
-          inputCtx.close();
-          outputCtx.close();
-      };
-    } catch (err) {
-      console.error(err);
-      setStatus('System Failure');
-      notify('Hardware Access Denied. Check Permissions.', 'error');
-    }
-  };
-
-  const stopSession = async () => {
-      if (sessionRef.current) {
-          const session = await sessionRef.current;
-          if ((sessionRef.current as any)._cleanup) (sessionRef.current as any)._cleanup();
-          session.close();
-          sessionRef.current = null;
-          setIsConnected(false);
-          setStatus('Standby');
-          notify("Session Terminated.", 'info');
-      }
-  };
-
-  return (
-    <div className="p-6 bg-titan-900/50 rounded-2xl border border-titan-800 h-full flex flex-col relative overflow-hidden">
-      {/* Activity Indicator Overlay */}
-      {isConnected && (
-         <div className="absolute top-4 right-4 flex items-center gap-2">
-             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-             <span className="text-xs text-red-400 font-mono">LIVE FEED</span>
-         </div>
-      )}
-
-      <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><Mic className="text-titan-accent" /> Titan Voice (Live)</h3>
-      <p className="text-slate-400 mb-6 text-sm">Real-time multimodal conversation channel.</p>
-      
-      <div className="relative aspect-video bg-black rounded-lg overflow-hidden mb-6 border border-titan-800 flex-grow group">
-        <video ref={videoRef} className="w-full h-full object-cover opacity-50 transition-opacity duration-700 group-hover:opacity-80" muted playsInline />
-        <canvas ref={canvasRef} className="hidden" />
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-             <div className="text-titan-accent font-mono text-xs px-3 py-1 bg-black/50 rounded backdrop-blur-sm border border-titan-800 uppercase tracking-widest flex items-center gap-2">
-                <Activity size={12} className={isConnected ? "animate-pulse" : ""} />
-                {status}
-             </div>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-4 mt-auto">
-        {!isConnected ? (
-             <MagneticButton onClick={startSession} className={!apiKey ? 'opacity-50 cursor-not-allowed' : ''}>Connect Link</MagneticButton>
-        ) : (
-             <MagneticButton variant="secondary" onClick={stopSession}>Terminate</MagneticButton>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const VisionModule: React.FC<ModuleProps> = ({ apiKey, notify }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'gen' | 'edit' | 'analyze'>('gen');
-  const [prompt, setPrompt] = useState('');
-  const [result, setResult] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [aspectRatio, setAspectRatio] = useState('1:1');
-  const [size, setSize] = useState('1K');
-
-  const handleAction = async () => {
-    if (!apiKey) { notify("Neural Key Required.", 'error'); return; }
-    
-    setLoading(true);
-    setResult(null);
-    try {
-        const ai = new GoogleGenAI({ apiKey });
-
-        if (activeSubTab === 'gen') {
-            const response = await ai.models.generateContent({
-                model: 'gemini-3-pro-image-preview',
-                contents: { parts: [{ text: prompt }] },
-                config: {
-                    imageConfig: { aspectRatio: aspectRatio as any, imageSize: size as any }
-                }
-            });
-            const imgData = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
-            if (imgData) {
-                setResult(`data:image/png;base64,${imgData}`);
-                notify("Visual Generated Successfully.", 'success');
-            }
-        } else if (activeSubTab === 'edit') {
-            if (!uploadedFile) { notify("Source Image Required.", 'error'); setLoading(false); return; }
-            const imgPart = await fileToGenerativePart(uploadedFile);
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash-image',
-                contents: { parts: [imgPart, { text: prompt }] }
-            });
-            const imgData = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
-            if (imgData) {
-                setResult(`data:image/png;base64,${imgData}`);
-                notify("Edit Complete.", 'success');
-            }
-        } else if (activeSubTab === 'analyze') {
-             if (!uploadedFile) { notify("Source Image Required.", 'error'); setLoading(false); return; }
-             const imgPart = await fileToGenerativePart(uploadedFile);
-             const response = await ai.models.generateContent({
-                 model: 'gemini-3-pro-preview',
-                 contents: { parts: [imgPart, { text: prompt || "Analyze this image." }] }
-             });
-             setResult(response.text || "No analysis generated.");
-             notify("Analysis Complete.", 'success');
-        }
-    } catch (e: any) {
-        console.error(e);
-        notify(`Visual Operation Failed: ${e.message}`, 'error');
-    } finally {
-        setLoading(false);
-    }
-  };
-
-  return (
-    <div className="p-6 bg-titan-900/50 rounded-2xl border border-titan-800">
-         <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><ImageIcon className="text-titan-accent" /> Visual Forge</h3>
-         
-         <div className="flex gap-4 mb-6 border-b border-titan-800 pb-2 overflow-x-auto scrollbar-hide">
-            {['gen', 'edit', 'analyze'].map(t => (
-                <button key={t} onClick={() => { setActiveSubTab(t as any); setResult(null); }} className={`uppercase text-xs font-bold tracking-wider pb-2 transition-colors ${activeSubTab === t ? 'text-titan-accent border-b-2 border-titan-accent' : 'text-slate-500 hover:text-slate-300'}`}>
-                    {t === 'gen' ? 'Generate' : t === 'edit' ? 'Edit' : 'Analyze'}
-                </button>
-            ))}
-         </div>
-
-         <div className="space-y-4">
-             {activeSubTab !== 'gen' && (
-                 <input 
-                    type="file" 
-                    id="vision-file-upload"
-                    name="visionFile"
-                    onChange={e => setUploadedFile(e.target.files?.[0] || null)} 
-                    className="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-titan-800 file:text-titan-accent hover:file:bg-titan-700" 
-                    accept="image/*" 
-                 />
-             )}
-             
-             {activeSubTab === 'gen' && (
-                 <div className="flex gap-2">
-                     <select 
-                        id="vision-aspect"
-                        name="visionAspectRatio"
-                        value={aspectRatio} 
-                        onChange={e => setAspectRatio(e.target.value)} 
-                        className="bg-titan-950 border border-titan-800 text-white rounded px-3 py-2 text-xs focus:border-titan-accent outline-none"
-                    >
-                         {['1:1', '16:9', '9:16', '4:3', '3:4'].map(r => <option key={r} value={r}>{r}</option>)}
-                     </select>
-                     <select 
-                        id="vision-size"
-                        name="visionSize"
-                        value={size} 
-                        onChange={e => setSize(e.target.value)} 
-                        className="bg-titan-950 border border-titan-800 text-white rounded px-3 py-2 text-xs focus:border-titan-accent outline-none"
-                    >
-                         {['1K', '2K', '4K'].map(s => <option key={s} value={s}>{s}</option>)}
-                     </select>
-                 </div>
-             )}
-
-             <textarea 
-                id="vision-prompt"
-                name="visionPrompt"
-                value={prompt} 
-                onChange={e => setPrompt(e.target.value)} 
-                placeholder={activeSubTab === 'edit' ? "e.g., 'Add a retro filter'" : "Describe your vision..."}
-                className="w-full bg-titan-950 border border-titan-800 rounded-lg p-3 text-white focus:border-titan-accent outline-none text-sm h-24 resize-none"
-             />
-             
-             <MagneticButton onClick={handleAction} className={`w-full justify-center ${!apiKey ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                 {loading ? <Loader2 className="animate-spin" /> : <Play size={16} />} Execute
-             </MagneticButton>
-         </div>
-
-         {result && (
-             <div className="mt-6 p-4 bg-black rounded-lg border border-titan-800 animate-fade-in">
-                 {activeSubTab === 'analyze' ? (
-                     <p className="text-slate-300 text-sm whitespace-pre-wrap">{result}</p>
-                 ) : (
-                     <img src={result} alt="Generated" className="w-full rounded" />
-                 )}
-             </div>
-         )}
-    </div>
-  );
-};
-
-const MotionModule: React.FC<ModuleProps> = ({ apiKey, notify }) => {
-    const [prompt, setPrompt] = useState('');
-    const [videoUrl, setVideoUrl] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [aspectRatio, setAspectRatio] = useState('16:9');
-    const [mode, setMode] = useState<'gen' | 'animate' | 'analyze'>('gen');
-    const [file, setFile] = useState<File | null>(null);
-
-    const handleVeo = async () => {
-        if (!apiKey) { notify("Neural Key Required.", 'error'); return; }
-        
-        try {
-            const ai = new GoogleGenAI({ apiKey });
-
-            if (mode === 'analyze') {
-                 setLoading(true);
-                 if (!file) { notify("Upload video/image first.", 'error'); setLoading(false); return; }
-                 const part = await fileToGenerativePart(file); 
-                 const response = await ai.models.generateContent({
-                     model: 'gemini-3-pro-preview',
-                     contents: { parts: [part, { text: prompt || "Analyze this video." }] }
-                 });
-                 setVideoUrl(null);
-                 notify("Analysis Complete.", 'success');
-                 alert(response.text); // Using alert here for large text, could be improved but keeping simple for now
-                 setLoading(false);
-                 return;
-            }
-
-            setLoading(true);
-            setVideoUrl(null);
-            notify("Engaging Veo Engine...", 'info');
-
-            let operation;
-            if (mode === 'gen') {
-                 operation = await ai.models.generateVideos({
-                    model: 'veo-3.1-fast-generate-preview',
-                    prompt: prompt,
-                    config: { numberOfVideos: 1, resolution: '720p', aspectRatio: aspectRatio as any }
-                });
-            } else {
-                if (!file) { notify('Upload source image first', 'error'); setLoading(false); return; }
-                const imgPart = await fileToGenerativePart(file);
-                operation = await ai.models.generateVideos({
-                    model: 'veo-3.1-fast-generate-preview',
-                    prompt: prompt,
-                    image: { imageBytes: imgPart.inlineData.data, mimeType: imgPart.inlineData.mimeType },
-                    config: { numberOfVideos: 1, resolution: '720p', aspectRatio: aspectRatio as any }
-                });
-            }
-
-            while (!operation.done) {
-                await new Promise(r => setTimeout(r, 5000));
-                operation = await ai.operations.getVideosOperation({ operation });
-            }
-
-            const uri = operation.response?.generatedVideos?.[0]?.video?.uri;
-            if (uri) {
-                const vidRes = await fetch(`${uri}&key=${apiKey}`);
-                if (!vidRes.ok) throw new Error("Failed to fetch generated video.");
-                const vidBlob = await vidRes.blob();
-                setVideoUrl(URL.createObjectURL(vidBlob));
-                notify("Motion Generated.", 'success');
-            }
-        } catch (e: any) {
-            console.error(e);
-            notify(`Veo Process Failed: ${e.message}`, 'error');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <div className="p-6 bg-titan-900/50 rounded-2xl border border-titan-800">
-             <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><Video className="text-titan-accent" /> Motion Engine (Veo)</h3>
-             
-             <div className="flex gap-4 mb-4 overflow-x-auto pb-2 scrollbar-hide">
-                 <button onClick={() => setMode('gen')} className={`text-xs uppercase font-bold transition-colors ${mode==='gen' ? 'text-titan-accent' : 'text-slate-500 hover:text-slate-300'}`}>Gen</button>
-                 <button onClick={() => setMode('animate')} className={`text-xs uppercase font-bold transition-colors ${mode==='animate' ? 'text-titan-accent' : 'text-slate-500 hover:text-slate-300'}`}>Animate</button>
-                 <button onClick={() => setMode('analyze')} className={`text-xs uppercase font-bold transition-colors ${mode==='analyze' ? 'text-titan-accent' : 'text-slate-500 hover:text-slate-300'}`}>Analyze</button>
-             </div>
-
-             <div className="space-y-4">
-                {mode !== 'gen' && (
-                    <input 
-                        type="file" 
-                        id="motion-file-upload"
-                        name="motionFile"
-                        onChange={e => setFile(e.target.files?.[0] || null)} 
-                        className="text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-titan-800 file:text-titan-accent hover:file:bg-titan-700" 
-                    />
-                )}
-                
-                {mode !== 'analyze' && (
-                    <select 
-                        id="motion-aspect"
-                        name="motionAspectRatio"
-                        value={aspectRatio} 
-                        onChange={e => setAspectRatio(e.target.value)} 
-                        className="bg-titan-950 border border-titan-800 text-white rounded px-3 py-2 text-xs w-full focus:border-titan-accent outline-none"
-                    >
-                         <option value="16:9">Landscape (16:9)</option>
-                         <option value="9:16">Portrait (9:16)</option>
-                    </select>
-                )}
-
-                <textarea 
-                    id="motion-prompt"
-                    name="motionPrompt"
-                    value={prompt} 
-                    onChange={e => setPrompt(e.target.value)} 
-                    placeholder="Enter motion prompt..." 
-                    className="w-full bg-titan-950 border border-titan-800 rounded-lg p-3 text-white text-sm focus:border-titan-accent outline-none h-24 resize-none" 
-                />
-                
-                <MagneticButton onClick={handleVeo} className={`w-full justify-center ${!apiKey ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                    {loading ? <Loader2 className="animate-spin" /> : 'Engage Engine'}
-                </MagneticButton>
-             </div>
-
-             {videoUrl && (
-                 <div className="mt-6">
-                     <video src={videoUrl} controls className="w-full rounded-lg border border-titan-800 shadow-2xl" />
-                 </div>
-             )}
-        </div>
-    );
-};
-
-const WriterModule: React.FC<ModuleProps> = ({ apiKey, notify }) => {
-  const [topic, setTopic] = useState('');
-  const [tone, setTone] = useState('Cinematic');
-  const [format, setFormat] = useState('Blog Post');
-  const [output, setOutput] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleGenerate = async () => {
-    if (!apiKey) { notify("Neural Key Required.", 'error'); return; }
-    if (!topic.trim()) { notify("Please enter a topic.", 'error'); return; }
-    
-    setLoading(true);
-    notify("Drafting content...", 'info');
-    try {
-        const ai = new GoogleGenAI({ apiKey });
-        const prompt = `Topic: ${topic}\n\nTask: Write a ${tone} ${format}.`;
-        
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: prompt,
-            config: {
-                systemInstruction: "You are the 'Titan Scribe', an expert copywriter for OpsVantage Digital. You write authoritative, cinematic, and high-converting B2B content. Your tone is confident and precise. Avoid corporate jargon where possible, focusing on legacy and stewardship."
-            }
-        });
-
-        setOutput(response.text || "No content generated.");
-        notify("Content Generated.", 'success');
-    } catch (e: any) {
-        console.error(e);
-        setOutput("Generation failed. Please check API Key.");
-        notify(`Generation failed: ${e.message}`, 'error');
-    } finally {
-        setLoading(false);
-    }
-  };
-
-  return (
-    <div className="p-6 bg-titan-900/50 rounded-2xl border border-titan-800 h-full">
-         <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><PenTool className="text-titan-accent" /> Titan Scribe</h3>
-         
-         <div className="grid grid-cols-2 gap-4 mb-4">
-             <div>
-                 <label htmlFor="writer-format" className="block text-xs text-slate-500 mb-1 uppercase font-bold tracking-wider">Format</label>
-                 <select 
-                    id="writer-format"
-                    name="writerFormat"
-                    value={format} 
-                    onChange={e => setFormat(e.target.value)} 
-                    className="w-full bg-titan-950 border border-titan-800 text-white rounded px-3 py-2 text-sm focus:border-titan-accent outline-none"
-                 >
-                     {['Blog Post', 'LinkedIn Post', 'Twitter Thread', 'Email Newsletter', 'Ad Copy', 'Press Release'].map(f => <option key={f} value={f}>{f}</option>)}
-                 </select>
-             </div>
-             <div>
-                 <label htmlFor="writer-tone" className="block text-xs text-slate-500 mb-1 uppercase font-bold tracking-wider">Tone</label>
-                 <select 
-                    id="writer-tone"
-                    name="writerTone"
-                    value={tone} 
-                    onChange={e => setTone(e.target.value)} 
-                    className="w-full bg-titan-950 border border-titan-800 text-white rounded px-3 py-2 text-sm focus:border-titan-accent outline-none"
-                 >
-                     {['Cinematic', 'Professional', 'Urgent', 'Empathetic', 'Witty', 'Technical'].map(t => <option key={t} value={t}>{t}</option>)}
-                 </select>
-             </div>
-         </div>
-
-         <div className="space-y-4">
-             <textarea 
-                id="writer-topic"
-                name="writerTopic"
-                value={topic} 
-                onChange={e => setTopic(e.target.value)} 
-                placeholder="Enter topic, key points, or raw ideas..." 
-                className="w-full bg-titan-950 border border-titan-800 rounded-lg p-3 text-white focus:border-titan-accent outline-none text-sm h-32 resize-none"
-             />
-             
-             <MagneticButton onClick={handleGenerate} className={`w-full justify-center ${!apiKey ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                 {loading ? <Loader2 className="animate-spin" /> : 'Generate Copy'}
-             </MagneticButton>
-         </div>
-
-         {output && (
-             <div className="mt-6 p-4 bg-black rounded-lg border border-titan-800 animate-fade-in">
-                 <h4 className="text-xs uppercase text-titan-accent mb-3 font-bold tracking-widest">Draft Output</h4>
-                 <div className="text-slate-300 text-sm whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto pr-2 custom-scrollbar">
-                     {output}
-                 </div>
-             </div>
-         )}
-    </div>
-  );
-};
-
-// --- NEW BUILDER MODULE ---
-interface BuilderData {
-    analysis: {
-        monetizationVector: string;
-        targetAudience: string;
-        hook: string;
-    };
-    structure: Array<{ section: string; purpose: string }>;
-    heroCode: string;
-}
-
-const BuilderModule: React.FC<ModuleProps> = ({ apiKey, notify }) => {
-    const [businessIdea, setBusinessIdea] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [data, setData] = useState<BuilderData | null>(null);
-    const [view, setView] = useState<'blueprint' | 'code' | 'preview'>('blueprint');
-
-    const handleArchitect = async () => {
-        if (!apiKey) { notify("Neural Key Required.", 'error'); return; }
-        if (!businessIdea) { notify("Input business concept.", 'error'); return; }
-
-        setLoading(true);
-        notify("Titan Architect: Analyzing Market Vectors...", 'info');
-
-        const ai = new GoogleGenAI({ apiKey });
-        
-        const promptText = `Act as a world-class Conversion Rate Optimization expert and Senior Frontend Architect. 
-        Analyze this business idea: "${businessIdea}".
-        
-        1. Identify the single best monetization vector (e.g., SaaS subscription, High-ticket service, Digital Product).
-        2. Define the Target Audience and the "Hook".
-        3. Outline a 5-section landing page structure optimized for this specific revenue model.
-        4. Generate valid, production-ready HTML/Tailwind CSS for the HERO SECTION only.
-           - Use a dark, modern "Titan" aesthetic (slate-950 bg, white text, accent colors).
-           - Ensure it is responsive.
-           - Do NOT use external CSS links other than Tailwind CDN (assume it is present).
-        
-        Return JSON only.`;
-
-        // Configuration reusable for both tiers
-        const generationConfig: any = {
-            responseMimeType: "application/json",
-            maxOutputTokens: 8192,
-            responseSchema: {
-                type: Type.OBJECT,
-                required: ["analysis", "structure", "heroCode"],
-                properties: {
-                    analysis: {
-                        type: Type.OBJECT,
-                        required: ["monetizationVector", "targetAudience", "hook"],
-                        properties: {
-                            monetizationVector: { type: Type.STRING },
-                            targetAudience: { type: Type.STRING },
-                            hook: { type: Type.STRING }
-                        }
-                    },
-                    structure: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.OBJECT,
-                            required: ["section", "purpose"],
-                            properties: {
-                                section: { type: Type.STRING },
-                                purpose: { type: Type.STRING }
-                            }
-                        }
-                    },
-                    heroCode: { type: Type.STRING }
-                }
-            }
-        };
-
-        try {
-            let response;
-            try {
-                // ATTEMPT 1: High-Intelligence Model (Gemini 3 Pro)
-                // This model is smarter but has stricter rate limits.
-                response = await ai.models.generateContent({
-                    model: 'gemini-3-pro-preview',
-                    contents: promptText,
-                    config: generationConfig
-                });
-            } catch (err: any) {
-                // Check for Quota/Rate Limit errors (429)
-                const errorMsg = err.message || JSON.stringify(err);
-                if (errorMsg.includes('429') || errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('Quota')) {
-                    notify("Titan Pro busy. Rerouting to Flash Tier (High Speed)...", 'info');
-                    
-                    // ATTEMPT 2: High-Speed Model (Gemini 2.5 Flash)
-                    // More generous rate limits, still very capable of JSON/Code generation.
-                    response = await ai.models.generateContent({
-                        model: 'gemini-2.5-flash',
-                        contents: promptText,
-                        config: generationConfig
-                    });
-                } else {
-                    throw err; // Re-throw other errors (auth, bad request, etc)
-                }
-            }
-
-            if (response?.text) {
-                const parsed = JSON.parse(response.text) as BuilderData;
-                setData(parsed);
-                notify("Blueprint Architected.", 'success');
-            }
-        } catch (e: any) {
-            console.error(e);
-            notify(`Architecture Failed: ${e.message}`, 'error');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <div className="p-6 bg-titan-900/50 rounded-2xl border border-titan-800 h-full flex flex-col">
-            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <Layout className="text-titan-accent" /> Titan Architect <span className="text-xs bg-titan-accent/10 text-titan-accent px-2 py-0.5 rounded border border-titan-accent/20">SENTIENT</span>
-            </h3>
-            
-            <div className="mb-6 space-y-4">
-                <textarea 
-                    id="builder-input"
-                    name="builderInput"
-                    value={businessIdea}
-                    onChange={(e) => setBusinessIdea(e.target.value)}
-                    placeholder="Describe your business concept (e.g., 'A premium dog walking service for busy tech executives')..."
-                    className="w-full bg-titan-950 border border-titan-800 rounded-lg p-4 text-white focus:border-titan-accent outline-none text-sm h-24 resize-none placeholder-slate-600"
-                />
-                <MagneticButton onClick={handleArchitect} className={`w-full justify-center ${!apiKey ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                    {loading ? <span className="flex items-center gap-2"><Loader2 className="animate-spin" /> Analyzing Revenue Models...</span> : <span className="flex items-center gap-2"><Brain size={16} /> Architect & Build</span>}
-                </MagneticButton>
-            </div>
-
-            {data && (
-                <div className="flex-grow flex flex-col animate-slide-up">
-                    <div className="flex border-b border-titan-800 mb-4">
-                        <button onClick={() => setView('blueprint')} className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${view === 'blueprint' ? 'border-titan-accent text-white' : 'border-transparent text-slate-500 hover:text-slate-300'}`}>Blueprint</button>
-                        <button onClick={() => setView('code')} className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${view === 'code' ? 'border-titan-accent text-white' : 'border-transparent text-slate-500 hover:text-slate-300'}`}>Code</button>
-                        <button onClick={() => setView('preview')} className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${view === 'preview' ? 'border-titan-accent text-white' : 'border-transparent text-slate-500 hover:text-slate-300'}`}>Live Preview</button>
-                    </div>
-
-                    <div className="flex-grow bg-titan-950 rounded-lg border border-titan-800 p-4 overflow-auto custom-scrollbar h-[400px]">
-                        {view === 'blueprint' && (
-                            <div className="space-y-6">
-                                <div className="bg-titan-900/50 p-4 rounded border border-titan-800">
-                                    <h4 className="flex items-center gap-2 text-titan-gold font-bold mb-2"><DollarSign size={16} /> Monetization Strategy</h4>
-                                    <p className="text-xl text-white font-serif mb-2">{data.analysis.monetizationVector}</p>
-                                    <p className="text-slate-400 text-sm">{data.analysis.hook}</p>
-                                </div>
-                                <div>
-                                    <h4 className="text-xs uppercase text-slate-500 font-bold tracking-widest mb-3">Site Architecture</h4>
-                                    <div className="space-y-3">
-                                        {data.structure.map((s, i) => (
-                                            <div key={i} className="flex gap-4 items-start">
-                                                <div className="w-6 h-6 rounded-full bg-titan-800 flex items-center justify-center text-xs font-mono text-titan-accent flex-shrink-0">{i + 1}</div>
-                                                <div>
-                                                    <p className="text-white font-medium">{s.section}</p>
-                                                    <p className="text-slate-500 text-xs">{s.purpose}</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {view === 'code' && (
-                            <div className="relative font-mono text-xs">
-                                <pre className="text-slate-300 whitespace-pre-wrap">{data.heroCode}</pre>
-                                <button 
-                                    onClick={() => { navigator.clipboard.writeText(data.heroCode); notify("Code copied.", "success"); }}
-                                    className="absolute top-0 right-0 p-2 text-slate-500 hover:text-white bg-titan-900 rounded"
-                                >
-                                    <Code size={16} />
-                                </button>
-                            </div>
-                        )}
-
-                        {view === 'preview' && (
-                            <div className="w-full h-full bg-white rounded overflow-hidden">
-                                <iframe 
-                                    srcDoc={`
-                                        <!DOCTYPE html>
-                                        <html>
-                                        <head>
-                                            <script src="https://cdn.tailwindcss.com"></script>
-                                        </head>
-                                        <body>${data.heroCode}</body>
-                                        </html>
-                                    `}
-                                    className="w-full h-full border-0"
-                                    title="Preview"
-                                />
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
-const IntelModule: React.FC<ModuleProps> = ({ apiKey, notify }) => {
-    const [mode, setMode] = useState<'chat' | 'maps' | 'transcribe' | 'tts'>('chat');
-    const [input, setInput] = useState('');
-    const [output, setOutput] = useState('');
-    const [thinking, setThinking] = useState(false);
-    const [useSearch, setUseSearch] = useState(false);
-    const [fastMode, setFastMode] = useState(false);
-    const [groundingUrls, setGroundingUrls] = useState<any[]>([]);
-
-    const handleExecute = async () => {
-        if (!apiKey) { notify("Neural Key Required.", 'error'); return; }
-        
-        const ai = new GoogleGenAI({ apiKey });
-        setOutput('');
-        setGroundingUrls([]);
-        try {
-            if (mode === 'chat') {
-                const modelName = fastMode ? 'gemini-flash-lite-latest' : 'gemini-3-pro-preview';
-                const tools = useSearch ? [{ googleSearch: {} }] : [];
-                const config: any = { tools };
-                if (thinking && !fastMode && !useSearch) {
-                    config.thinkingConfig = { thinkingBudget: 32768 };
-                }
-
-                notify("Processing...", 'info');
-                const response = await ai.models.generateContent({
-                    model: modelName,
-                    contents: input,
-                    config
-                });
-                
-                setOutput(response.text || "No response.");
-                if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
-                    setGroundingUrls(response.candidates[0].groundingMetadata.groundingChunks);
-                }
-                notify("Data received.", 'success');
-
-            } else if (mode === 'maps') {
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: input,
-                    config: { tools: [{ googleMaps: {} }] }
-                });
-                setOutput(response.text || '');
-                 if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
-                    setGroundingUrls(response.candidates[0].groundingMetadata.groundingChunks);
-                }
-                notify("Location data received.", 'success');
-
-            } else if (mode === 'transcribe') {
-                notify("Recording Audio (5s)...", 'info');
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                const mediaRecorder = new MediaRecorder(stream);
-                const chunks: any[] = [];
-                mediaRecorder.ondataavailable = e => chunks.push(e.data);
-                mediaRecorder.start();
-                setTimeout(() => {
-                    mediaRecorder.stop();
-                    notify("Processing Audio...", 'info');
-                }, 5000);
-                
-                mediaRecorder.onstop = async () => {
-                    const blob = new Blob(chunks, { type: 'audio/webm' });
-                    const reader = new FileReader();
-                    reader.readAsDataURL(blob);
-                    reader.onloadend = async () => {
-                         const b64 = (reader.result as string).split(',')[1];
-                         const response = await ai.models.generateContent({
-                             model: 'gemini-3-flash-preview',
-                             contents: { parts: [{ inlineData: { mimeType: 'audio/webm', data: b64 } }, { text: "Transcribe this audio." }] }
-                         });
-                         setOutput(response.text || "Transcription failed.");
-                         notify("Transcription Complete.", 'success');
-                         stream.getTracks().forEach(t => t.stop());
-                    };
-                };
-
-            } else if (mode === 'tts') {
-                 notify("Synthesizing Audio...", 'info');
-                 const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash-preview-tts',
-                    contents: { parts: [{ text: input }] },
-                    config: {
-                        responseModalities: [Modality.AUDIO],
-                        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } }
-                    }
-                 });
-                 const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-                 if (audioData) {
-                    const ctx = new AudioContext();
-                    const buf = await decodeAudioData(decodeAudio(audioData), ctx);
-                    const source = ctx.createBufferSource();
-                    source.buffer = buf;
-                    source.connect(ctx.destination);
-                    source.start();
-                    setOutput("Playing audio...");
-                    notify("Playback started.", 'success');
-                 }
-            }
-        } catch (e: any) { 
-            console.error(e); 
-            setOutput("Error executing. Check API Key."); 
-            notify(`Module Error: ${e.message}`, 'error');
-        }
-    };
-
-    return (
-        <div className="p-6 bg-titan-900/50 rounded-2xl border border-titan-800">
-             <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><Brain className="text-titan-accent" /> Neural Link</h3>
-             
-             <div className="flex flex-wrap gap-2 mb-4">
-                 {['chat', 'maps', 'transcribe', 'tts'].map(m => (
-                     <button key={m} onClick={() => setMode(m as any)} className={`px-3 py-1 rounded text-xs uppercase font-bold border transition-colors ${mode === m ? 'bg-titan-800 border-titan-accent text-white' : 'border-titan-800 text-slate-500 hover:text-slate-300'}`}>{m}</button>
-                 ))}
-             </div>
-
-             {mode === 'chat' && (
-                 <div className="flex gap-4 mb-4 text-xs">
-                     <label htmlFor="chk-search" className="flex items-center gap-2 text-slate-400 hover:text-white cursor-pointer">
-                        <input id="chk-search" name="chkSearch" type="checkbox" checked={useSearch} onChange={e => setUseSearch(e.target.checked)} /> Google Search
-                     </label>
-                     <label htmlFor="chk-thinking" className="flex items-center gap-2 text-slate-400 hover:text-white cursor-pointer">
-                        <input id="chk-thinking" name="chkThinking" type="checkbox" checked={thinking} onChange={e => setThinking(e.target.checked)} disabled={fastMode} /> Thinking Mode
-                     </label>
-                     <label htmlFor="chk-fast" className="flex items-center gap-2 text-slate-400 hover:text-white cursor-pointer">
-                        <input id="chk-fast" name="chkFast" type="checkbox" checked={fastMode} onChange={e => setFastMode(e.target.checked)} /> Fast
-                     </label>
-                 </div>
-             )}
-
-             <div className="space-y-4">
-                 {mode !== 'transcribe' && (
-                    <textarea 
-                        id="intel-input"
-                        name="intelInput"
-                        value={input} 
-                        onChange={e => setInput(e.target.value)} 
-                        placeholder="Input query or text..." 
-                        className="w-full bg-titan-950 border border-titan-800 rounded-lg p-3 text-white text-sm focus:border-titan-accent outline-none" 
-                    />
-                 )}
-                 <MagneticButton onClick={handleExecute} className={`w-full justify-center ${!apiKey ? 'opacity-50 cursor-not-allowed' : ''}`}>Processing Unit: Engage</MagneticButton>
-             </div>
-
-             {output && (
-                 <div className="mt-6 p-4 bg-black rounded-lg border border-titan-800 text-sm text-slate-300 whitespace-pre-wrap animate-fade-in">
-                     {output}
-                     {groundingUrls.length > 0 && (
-                         <div className="mt-4 pt-4 border-t border-titan-900">
-                             <h4 className="text-titan-accent text-xs uppercase mb-2 font-bold tracking-widest">Sources</h4>
-                             <ul className="space-y-2">
-                                 {groundingUrls.map((g, i) => {
-                                     const uri = g.web?.uri || g.maps?.webUri;
-                                     const title = g.web?.title || g.maps?.title || uri;
-                                     if (!uri) return null;
-                                     return (
-                                        <li key={i} className="flex items-start gap-2">
-                                            <span className="text-titan-accent">•</span>
-                                            <a href={uri} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-titan-accent underline truncate block transition-colors">{title}</a>
-                                        </li>
-                                     );
-                                 })}
-                             </ul>
-                         </div>
-                     )}
-                 </div>
-             )}
-        </div>
-    );
-};
-
-// --- MAIN PAGE ---
+import React, { useState, useEffect, useRef } from 'react';
+import { User, Website, AppView, WebsiteSection } from '../types';
+import { generateWebsite, regenerateSection } from '../geminiService';
+import { RenderSection } from '../components/WebsiteSection';
+import { Plus, Settings, Eye, Magic, Trash, ChevronRight, User as UserIcon, Layout, Globe } from '../components/Icons';
 
 export default function AILab() {
-  const [apiKey, setApiKey] = useState('');
-  const [showKey, setShowKey] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [view, setView] = useState<AppView>('landing');
+  const [user, setUser] = useState<User | null>(null);
+  const [websites, setWebsites] = useState<Website[]>([]);
+  const [activeSite, setActiveSite] = useState<Website | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStep, setGenerationStep] = useState(0);
+  const [editPrompt, setEditPrompt] = useState('');
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
 
-  // NOTIFICATION SYSTEM
-  const notify = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
-      const id = Date.now();
-      setNotifications(prev => [...prev, { message, type, id }]);
-      setTimeout(() => {
-          setNotifications(prev => prev.filter(n => n.id !== id));
-      }, 4000);
-  };
+  // Generation Form State
+  const [genForm, setGenForm] = useState({ name: '', niche: 'SaaS', desc: '' });
 
+  // Load state from local storage
   useEffect(() => {
-    // Initialize with environment variable if present, to support legacy/demo modes
-    if (typeof process !== 'undefined' && process.env?.API_KEY) {
-        setApiKey(process.env.API_KEY);
+    const savedUser = localStorage.getItem('gensite_user');
+    const savedSites = localStorage.getItem('gensite_websites');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+      setView('dashboard');
     }
-    // DIAGNOSTIC LOG
-    console.log("OpsVantage Sentient Titan Lab: Initialized.");
-    console.log("Mode: Autonomous. AI Studio Helper: Disabled (Security Protocol).");
+    if (savedSites) {
+      setWebsites(JSON.parse(savedSites));
+    }
   }, []);
 
-  return (
-    <div className="pt-32 pb-24 min-h-screen relative">
-        {/* NOTIFICATION TOAST CONTAINER */}
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
-            {notifications.map(n => (
-                <div key={n.id} className={`pointer-events-auto px-4 py-3 rounded-lg border shadow-lg flex items-center gap-3 min-w-[300px] animate-slide-up bg-titan-950 ${
-                    n.type === 'error' ? 'border-red-500/50 text-red-200' : 
-                    n.type === 'success' ? 'border-green-500/50 text-green-200' : 
-                    'border-titan-accent/50 text-blue-200'
-                }`}>
-                    {n.type === 'error' ? <XCircle size={18} /> : n.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-                    <span className="text-sm font-medium">{n.message}</span>
-                </div>
-            ))}
-        </div>
+  // Persist websites
+  useEffect(() => {
+    if (websites.length > 0) {
+      localStorage.setItem('gensite_websites', JSON.stringify(websites));
+    }
+  }, [websites]);
 
-      <div className="container mx-auto px-6">
-        <h1 className="text-5xl md:text-7xl font-serif font-bold text-white mb-8">Sentient Titan <span className="text-titan-accent">Lab</span></h1>
-        <p className="text-xl text-slate-400 mb-10 max-w-3xl">
-            Direct interface to the Gemini constellation. This facility allows for raw interaction with our most advanced cognitive models. 
-            <span className="block mt-2 text-sm text-titan-gold/80 italic">Warning: Authorized Personnel Only. API Usage Metered.</span>
-        </p>
+  // Scroll to top on view change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [view]);
 
-        {/* SECURITY CLEARANCE: API KEY INPUT */}
-        <div className="max-w-xl mb-12 p-1 bg-gradient-to-r from-titan-800 to-transparent rounded-lg animate-fade-in">
-            <div className="bg-titan-950 rounded-md p-4 flex items-center gap-4 border border-titan-800 relative overflow-hidden">
-                <div className="bg-titan-900 p-2 rounded text-titan-accent z-10"><Key className="w-5 h-5" /></div>
-                <div className="flex-grow z-10">
-                    <label htmlFor="api-key-input" className="block text-xs text-slate-500 uppercase font-bold tracking-widest mb-1 flex justify-between">
-                        <span>Titan Neural Key</span>
-                        {!apiKey && <span className="text-titan-gold flex items-center gap-1"><AlertCircle size={10} /> Required</span>}
-                    </label>
-                    <div className="flex items-center gap-2">
-                        <input 
-                            id="api-key-input"
-                            name="apiKey"
-                            type={showKey ? "text" : "password"} 
-                            value={apiKey}
-                            onChange={(e) => setApiKey(e.target.value)}
-                            placeholder="Enter Google GenAI API Key..."
-                            className="bg-transparent border-none outline-none text-white w-full text-sm placeholder-slate-700 font-mono"
-                        />
-                    </div>
-                </div>
-                <button onClick={() => setShowKey(!showKey)} className="text-slate-500 hover:text-white transition-colors z-10">
-                    {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-                
-                {/* Visual Feedback for Valid Key Entry */}
-                {apiKey && <div className="absolute right-0 top-0 bottom-0 w-1 bg-titan-accent shadow-[0_0_15px_rgba(59,130,246,0.5)]" />}
-            </div>
-            <p className="mt-2 text-xs text-slate-600 pl-1">
-                Security Protocol: Keys are processed locally in your browser memory. No external storage.
-            </p>
-        </div>
+  const handleAuth = (e: React.FormEvent) => {
+    e.preventDefault();
+    const mockUser = { id: 'user_' + Date.now(), email: 'hello@world.com', name: 'New Builder' };
+    setUser(mockUser);
+    localStorage.setItem('gensite_user', JSON.stringify(mockUser));
+    setView('dashboard');
+  };
 
-        <BentoGrid className="grid-cols-1 lg:grid-cols-2 gap-8">
-            <BentoItem colSpan={2}><BuilderModule apiKey={apiKey} notify={notify} /></BentoItem>
-            <BentoItem colSpan={2}><VoiceModule apiKey={apiKey} notify={notify} /></BentoItem>
-            <BentoItem><VisionModule apiKey={apiKey} notify={notify} /></BentoItem>
-            <BentoItem><MotionModule apiKey={apiKey} notify={notify} /></BentoItem>
-            <BentoItem colSpan={2}><WriterModule apiKey={apiKey} notify={notify} /></BentoItem>
-            <BentoItem colSpan={2}><IntelModule apiKey={apiKey} notify={notify} /></BentoItem>
-        </BentoGrid>
+  const logout = () => {
+    localStorage.removeItem('gensite_user');
+    setUser(null);
+    setView('landing');
+  };
+
+  const startGeneration = async () => {
+    if (!genForm.name || !genForm.desc) {
+      alert("Please fill in your business name and description.");
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerationStep(0);
+    
+    // UI steps simulation
+    const steps = ["Analyzing niche...", "Planning structure...", "Writing copy...", "Choosing assets...", "Applying styles..."];
+    const interval = setInterval(() => {
+      setGenerationStep(prev => (prev < steps.length - 1 ? prev + 1 : prev));
+    }, 1000);
+
+    try {
+      const fullSite = await generateWebsite(genForm.niche, `${genForm.name}: ${genForm.desc}`);
+      setWebsites(prev => [fullSite, ...prev]);
+      setActiveSite(fullSite);
+      clearInterval(interval);
+      setView('builder');
+    } catch (err) {
+      alert("AI was unable to generate your site. Please check your API key and try again.");
+    } finally {
+      setIsGenerating(false);
+      clearInterval(interval);
+    }
+  };
+
+  const handleRegenerateSection = async () => {
+    if (!activeSite || !editingSectionId || !editPrompt) return;
+    
+    setIsGenerating(true);
+    try {
+      const sectionIndex = activeSite.sections.findIndex(s => s.id === editingSectionId);
+      const updatedSection = await regenerateSection(activeSite.sections[sectionIndex], editPrompt);
+      
+      const updatedSections = [...activeSite.sections];
+      updatedSections[sectionIndex] = { ...updatedSection, id: editingSectionId };
+      
+      const updatedSite = { ...activeSite, sections: updatedSections };
+      setActiveSite(updatedSite);
+      setWebsites(prev => prev.map(s => s.id === updatedSite.id ? updatedSite : s));
+      setEditingSectionId(null);
+      setEditPrompt('');
+    } catch (err) {
+      console.error(err);
+      alert("Error regenerating section.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  if (view === 'landing') {
+    return (
+      <div className="min-h-screen bg-white">
+        <nav className="p-6 flex justify-between items-center max-w-7xl mx-auto">
+          <div className="flex items-center gap-2 font-bold text-2xl text-indigo-600">
+            <Globe />
+            <span>GenSite AI</span>
+          </div>
+          <button onClick={() => setView('auth')} className="bg-indigo-600 text-white px-6 py-2 rounded-full font-medium hover:bg-indigo-700 transition">
+            Get Started
+          </button>
+        </nav>
+        
+        <main className="max-w-7xl mx-auto px-6 py-20 text-center">
+          <div className="inline-block bg-indigo-50 text-indigo-600 px-4 py-2 rounded-full text-sm font-bold mb-6">
+            THE FUTURE OF WEB DESIGN
+          </div>
+          <h1 className="text-6xl md:text-8xl font-black text-slate-900 mb-8 tracking-tighter">
+            Websites that <br /><span className="text-indigo-600">build themselves.</span>
+          </h1>
+          <p className="text-xl text-slate-600 max-w-2xl mx-auto mb-12 leading-relaxed">
+            Stop struggling with drag-and-drop. Describe your business, and our AI constructs a fully functional, high-converting landing page in seconds.
+          </p>
+          <div className="flex flex-col md:flex-row justify-center gap-4">
+            <button onClick={() => setView('auth')} className="bg-slate-900 text-white px-10 py-5 rounded-2xl text-xl font-bold hover:bg-slate-800 transition shadow-2xl">
+              Start Free Trial
+            </button>
+            <button className="bg-white border-2 border-slate-200 text-slate-700 px-10 py-5 rounded-2xl text-xl font-bold hover:border-slate-300 transition">
+              Watch Demo
+            </button>
+          </div>
+        </main>
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (view === 'auth') {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <div className="bg-white p-8 md:p-12 rounded-3xl shadow-xl max-w-md w-full border border-slate-100 animate-in fade-in zoom-in duration-300">
+          <div className="text-center mb-10">
+            <div className="flex justify-center mb-4 text-indigo-600"><Globe /></div>
+            <h2 className="text-3xl font-bold text-slate-900">Create Account</h2>
+            <p className="text-slate-500 mt-2">Join thousands of businesses using GenSite.</p>
+          </div>
+          <form onSubmit={handleAuth} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+              <input type="text" required className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition" placeholder="Alex Morgan" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+              <input type="email" required className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition" placeholder="alex@company.com" />
+            </div>
+            <button type="submit" className="w-full bg-indigo-600 text-white p-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition mt-4 shadow-lg shadow-indigo-100">
+              Get Started Free
+            </button>
+          </form>
+          <div className="mt-8 text-center text-sm text-slate-400">
+            By signing up, you agree to our <span className="underline cursor-pointer">Terms of Service</span>.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'dashboard') {
+    return (
+      <div className="min-h-screen bg-slate-50 flex">
+        <aside className="w-72 bg-white border-r border-slate-200 p-8 hidden lg:flex flex-col">
+          <div className="flex items-center gap-2 font-bold text-2xl text-indigo-600 mb-12">
+            <Globe />
+            <span>GenSite</span>
+          </div>
+          <nav className="space-y-2 flex-1">
+            <button className="w-full flex items-center gap-3 px-4 py-3 bg-indigo-50 text-indigo-600 rounded-xl font-bold transition">
+              <Layout /> My Websites
+            </button>
+            <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-50 rounded-xl transition font-medium">
+              <UserIcon /> Account
+            </button>
+            <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-50 rounded-xl transition font-medium">
+              <Settings /> Billing
+            </button>
+          </nav>
+          <button onClick={logout} className="text-slate-400 hover:text-slate-900 text-sm font-bold flex items-center gap-2 mt-auto">
+             Sign Out
+          </button>
+        </aside>
+
+        <main className="flex-1 p-8 md:p-12 overflow-y-auto">
+          <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+            <div>
+              <h1 className="text-4xl font-black text-slate-900 tracking-tight">Project Dashboard</h1>
+              <p className="text-slate-500 text-lg mt-1">Design, manage and scale your web presence.</p>
+            </div>
+            <button 
+              onClick={() => { setActiveSite(null); setGenForm({name:'', niche:'SaaS', desc:''}); setView('builder'); }}
+              className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition shadow-xl shadow-indigo-200 active:scale-95"
+            >
+              <Plus /> New Site
+            </button>
+          </header>
+
+          {websites.length === 0 ? (
+            <div className="bg-white border-2 border-dashed border-slate-200 rounded-[40px] p-24 text-center animate-in fade-in duration-500">
+              <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-8">
+                <Layout />
+              </div>
+              <h3 className="text-2xl font-bold mb-3 text-slate-900">Your portfolio is empty</h3>
+              <p className="text-slate-500 mb-10 max-w-sm mx-auto text-lg">Launch your first AI-generated website in under 2 minutes.</p>
+              <button 
+                onClick={() => setView('builder')}
+                className="bg-slate-900 text-white px-10 py-4 rounded-xl font-bold transition-all hover:px-12"
+              >
+                Create Website
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
+              {websites.map(site => (
+                <div key={site.id} className="bg-white rounded-[32px] border border-slate-200 overflow-hidden group hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+                  <div className="h-56 bg-slate-100 relative overflow-hidden">
+                    <img src={`https://picsum.photos/seed/${site.sections[0].content.image}/800/600`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 p-6">
+                       <button onClick={() => { setActiveSite(site); setView('builder'); }} className="bg-white text-slate-900 px-4 py-3 rounded-xl font-bold flex-1 text-sm shadow-xl active:scale-95 transition">Edit Design</button>
+                       <button onClick={() => { setActiveSite(site); setView('preview'); }} className="bg-indigo-600 text-white px-4 py-3 rounded-xl font-bold flex-1 text-sm shadow-xl active:scale-95 transition">Preview Site</button>
+                    </div>
+                  </div>
+                  <div className="p-8">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-xl font-bold text-slate-900">{site.name}</h3>
+                      <button onClick={() => setWebsites(prev => prev.filter(s => s.id !== site.id))} className="text-slate-300 hover:text-red-500 transition-colors p-1">
+                        <Trash />
+                      </button>
+                    </div>
+                    <p className="text-slate-500 mb-6 font-medium">{site.niche}</p>
+                    <div className="flex items-center gap-2 text-xs text-slate-400 font-bold uppercase tracking-widest">
+                       <div className="w-2 h-2 rounded-full bg-emerald-500"></div> Published
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+    );
+  }
+
+  if (view === 'builder') {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col">
+        {/* Builder Header */}
+        <header className="h-20 glass-sidebar border-b border-white/5 px-8 flex items-center justify-between z-50">
+          <div className="flex items-center gap-6">
+            <button onClick={() => setView('dashboard')} className="text-white/60 hover:text-white transition flex items-center gap-2 font-bold text-sm">
+              <ChevronRight /> Dashboard
+            </button>
+            <div className="h-6 w-px bg-white/10"></div>
+            <div className="flex flex-col">
+              <span className="text-white font-black text-lg tracking-tight">{activeSite?.name || 'Designing New Site'}</span>
+              <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">Editing Live</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+             <button onClick={() => activeSite && setView('preview')} disabled={!activeSite} className="px-6 py-2.5 rounded-xl bg-white/5 text-white text-sm font-bold hover:bg-white/10 transition disabled:opacity-20">
+                Preview
+             </button>
+             <button className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-600/20 active:scale-95">
+                Publish Site
+             </button>
+          </div>
+        </header>
+
+        <div className="flex-1 flex overflow-hidden">
+          {/* Editor Tools */}
+          <aside className="w-96 glass-sidebar border-r border-white/5 flex flex-col relative overflow-y-auto">
+             {!activeSite ? (
+               <div className="p-10 flex-1 flex flex-col">
+                  <div className="mb-12">
+                    <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center mb-8 shadow-2xl shadow-indigo-600/40">
+                      <Magic />
+                    </div>
+                    <h2 className="text-3xl font-black text-white mb-3">Build with AI</h2>
+                    <p className="text-slate-400 leading-relaxed">Describe your vision and watch our AI craft a professional website for you instantly.</p>
+                  </div>
+                  
+                  <div className="space-y-8 flex-1">
+                    <div className="group">
+                      <label className="block text-xs font-black text-indigo-400 uppercase tracking-[0.2em] mb-3">Business Name</label>
+                      <input 
+                        value={genForm.name}
+                        onChange={e => setGenForm({...genForm, name: e.target.value})}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none transition group-focus-within:border-indigo-500/50" 
+                        placeholder="e.g. Pixel Pulse Studio" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-black text-indigo-400 uppercase tracking-[0.2em] mb-3">Niche</label>
+                      <select 
+                        value={genForm.niche}
+                        onChange={e => setGenForm({...genForm, niche: e.target.value})}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                      >
+                        <option value="SaaS" className="bg-slate-900">SaaS Platform</option>
+                        <option value="Agency" className="bg-slate-900">Creative Agency</option>
+                        <option value="Portfolio" className="bg-slate-900">Personal Portfolio</option>
+                        <option value="Product" className="bg-slate-900">Physical Product</option>
+                        <option value="Services" className="bg-slate-900">Professional Services</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-black text-indigo-400 uppercase tracking-[0.2em] mb-3">Description</label>
+                      <textarea 
+                        value={genForm.desc}
+                        onChange={e => setGenForm({...genForm, desc: e.target.value})}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none min-h-[140px] transition resize-none" 
+                        placeholder="What do you do? Who is it for? Why should people care?"
+                      ></textarea>
+                    </div>
+                    <button 
+                      onClick={startGeneration}
+                      disabled={isGenerating}
+                      className="w-full bg-indigo-600 text-white p-5 rounded-2xl font-black text-lg hover:bg-indigo-700 transition flex items-center justify-center gap-3 shadow-2xl shadow-indigo-600/30 active:scale-[0.98] disabled:opacity-50"
+                    >
+                      {isGenerating ? "Crafting Magic..." : <><Magic /> Generate Design</>}
+                    </button>
+                  </div>
+               </div>
+             ) : (
+               <div className="flex flex-col h-full">
+                 <div className="p-8 border-b border-white/5">
+                    <h3 className="text-white font-black text-sm uppercase tracking-widest mb-6 flex items-center gap-2">
+                       <Layout /> Page Components
+                    </h3>
+                    <div className="space-y-3">
+                       {activeSite.sections.map((section, idx) => (
+                         <div 
+                           key={section.id} 
+                           onClick={() => setEditingSectionId(section.id)}
+                           className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group ${editingSectionId === section.id ? 'bg-indigo-600/10 border-indigo-500/50' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}
+                          >
+                            <div className="flex items-center gap-4">
+                              <span className="text-[10px] font-black text-indigo-400 bg-indigo-400/10 w-6 h-6 flex items-center justify-center rounded-lg">{idx + 1}</span>
+                              <span className="text-sm font-bold text-white/80 capitalize">{section.type}</span>
+                            </div>
+                            <Magic />
+                         </div>
+                       ))}
+                    </div>
+                 </div>
+                 
+                 {editingSectionId && (
+                   <div className="p-8 animate-in slide-in-from-bottom duration-500">
+                      <div className="bg-indigo-600 p-8 rounded-[32px] shadow-2xl">
+                        <h4 className="text-white font-black text-lg mb-2 flex items-center gap-2">
+                          <Magic /> AI Edit
+                        </h4>
+                        <p className="text-indigo-100 text-sm mb-6">Instruction our AI to refine this {activeSite.sections.find(s => s.id === editingSectionId)?.type} section.</p>
+                        <textarea 
+                          value={editPrompt}
+                          onChange={e => setEditPrompt(e.target.value)}
+                          className="w-full bg-white/10 border border-white/10 rounded-2xl p-4 text-white text-sm focus:ring-2 focus:ring-white/30 outline-none mb-6 placeholder:text-white/40 resize-none h-32" 
+                          placeholder="e.g. 'Make it more exciting', 'Add more focus on our AI features', 'Change the alignment to center'..."
+                        ></textarea>
+                        <div className="flex flex-col gap-3">
+                           <button 
+                            onClick={handleRegenerateSection} 
+                            disabled={isGenerating}
+                            className="w-full bg-white text-indigo-600 py-4 rounded-xl text-sm font-black shadow-xl active:scale-95 transition disabled:opacity-50"
+                           >
+                              {isGenerating ? "Rewriting..." : "Update Section"}
+                           </button>
+                           <button onClick={() => setEditingSectionId(null)} className="w-full text-white/60 hover:text-white font-bold text-xs transition">Cancel</button>
+                        </div>
+                      </div>
+                   </div>
+                 )}
+                 
+                 <div className="p-8 mt-auto">
+                    <div className="p-6 rounded-[32px] border border-dashed border-white/10 text-center hover:border-white/20 transition cursor-pointer group">
+                       <div className="text-white/20 group-hover:text-indigo-400 transition mb-2 flex justify-center"><Plus /></div>
+                       <span className="text-white/40 text-xs font-black uppercase tracking-widest">Add Custom Block</span>
+                    </div>
+                 </div>
+               </div>
+             )}
+          </aside>
+
+          {/* Builder Canvas */}
+          <main className="flex-1 bg-slate-900 p-12 overflow-y-auto scroll-smooth">
+             {isGenerating && !activeSite ? (
+               <div className="h-full flex flex-col items-center justify-center text-center animate-in fade-in duration-700">
+                  <div className="w-32 h-32 mb-10 relative">
+                    <div className="absolute inset-0 border-[6px] border-indigo-500/10 rounded-[40px]"></div>
+                    <div className="absolute inset-0 border-[6px] border-t-indigo-500 rounded-[40px] animate-spin"></div>
+                    <div className="absolute inset-0 flex items-center justify-center text-indigo-500 scale-[2]">
+                       <Magic />
+                    </div>
+                  </div>
+                  <h2 className="text-4xl font-black text-white mb-4 tracking-tighter">Building Your Digital Empire</h2>
+                  <p className="text-slate-400 text-lg max-w-sm mx-auto animate-pulse">{["Analyzing niche...", "Planning structure...", "Writing copy...", "Choosing assets...", "Applying styles..."][generationStep]}</p>
+               </div>
+             ) : activeSite ? (
+               <div className="max-w-5xl mx-auto shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] rounded-[40px] overflow-hidden border border-white/5 bg-white ring-8 ring-white/5 relative">
+                  {activeSite.sections.map(section => (
+                    <div key={section.id} className={`${editingSectionId === section.id ? 'ring-4 ring-indigo-500 ring-inset' : ''} transition-all`}>
+                      <RenderSection 
+                        section={section} 
+                        isEditing={true} 
+                        onEdit={() => setEditingSectionId(section.id)} 
+                        accentColor={activeSite.themeColor}
+                      />
+                    </div>
+                  ))}
+                  {isGenerating && (
+                    <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center">
+                       <div className="bg-white p-8 rounded-3xl shadow-2xl flex items-center gap-4">
+                          <div className="w-6 h-6 border-4 border-t-indigo-500 border-indigo-100 rounded-full animate-spin"></div>
+                          <span className="font-bold text-slate-900">AI is updating your site...</span>
+                       </div>
+                    </div>
+                  )}
+               </div>
+             ) : (
+               <div className="h-full flex items-center justify-center">
+                  <div className="text-center opacity-10">
+                    <div className="mb-8 flex justify-center scale-[5] text-white">
+                       <Layout />
+                    </div>
+                    <p className="text-white text-2xl font-black uppercase tracking-[0.5em]">Workspace Ready</p>
+                  </div>
+               </div>
+             )}
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'preview') {
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-top duration-500">
+           <button 
+             onClick={() => setView('builder')} 
+             className="bg-slate-950 text-white px-8 py-4 rounded-full font-black shadow-2xl border border-white/20 hover:scale-105 active:scale-95 transition flex items-center gap-3"
+           >
+              <Layout /> Exit Preview Mode
+           </button>
+        </div>
+        {activeSite?.sections.map(section => (
+          <RenderSection key={section.id} section={section} accentColor={activeSite.themeColor} />
+        ))}
+      </div>
+    );
+  }
+
+  return null;
 }
