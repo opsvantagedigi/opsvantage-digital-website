@@ -1,0 +1,9 @@
+{
+  "name": "OpsVantage Digital",
+  "description": "A digital stewardship platform embodying legacy, integrity, and technical excellence. Built as a Sentient Titan instance.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera",
+    "geolocation"
+  ]
+}
