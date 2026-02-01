@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "audit:run": "wait-on tcp:5173 && lighthouse http://localhost:5173 --output=json --output-path=./lighthouse.report.json --chrome-flags='--headless' --only-categories=performance,accessibility,best-practices,seo",
+    "audit:lighthouse": "npm-run-all --race --parallel dev audit:run"
   },
   "dependencies": {
     "react-dom": "^19.2.4",
@@ -19,6 +21,9 @@
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "lighthouse": "^12.1.0",
+    "npm-run-all": "^4.1.5",
+    "wait-on": "^7.2.0"
   }
 }
