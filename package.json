@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "audit:run": "wait-on tcp:5173 && lighthouse http://localhost:5173 --output=json --output-path=./lighthouse.report.json --chrome-flags='--headless' --only-categories=performance,accessibility,best-practices,seo",
-    "audit:lighthouse": "npm-run-all --race --parallel dev audit:run"
+    "audit:lighthouse": "npm-run-all --race --parallel dev audit:run",
+    "audit:prod": "lighthouse https://opsvantage-digital-website.vercel.app/ --output=json --output-path=./lighthouse.report.prod.json --chrome-flags='--headless' --only-categories=performance,accessibility,best-practices,seo"
   },
   "dependencies": {
     "react-dom": "^19.2.4",
