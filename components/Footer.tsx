@@ -17,9 +17,9 @@ export const Footer: React.FC = () => {
               Building digital infrastructure for the next generation of industry leaders.
             </p>
             <div className="flex gap-4">
-              <a href="#" className="text-slate-500 hover:text-white transition-colors"><Twitter size={20} /></a>
-              <a href="#" className="text-slate-500 hover:text-white transition-colors"><Linkedin size={20} /></a>
-              <a href="#" className="text-slate-500 hover:text-white transition-colors"><Github size={20} /></a>
+              <a href="#" aria-label="Follow on X" className="text-slate-400 hover:text-white transition-colors"><Twitter size={20} /></a>
+              <a href="#" aria-label="Connect on LinkedIn" className="text-slate-400 hover:text-white transition-colors"><Linkedin size={20} /></a>
+              <a href="#" aria-label="View on GitHub" className="text-slate-400 hover:text-white transition-colors"><Github size={20} /></a>
             </div>
           </div>
 
@@ -55,7 +55,7 @@ export const Footer: React.FC = () => {
           </div>
         </div>
 
-        <div className="border-t border-titan-900 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-slate-500">
+        <div className="border-t border-titan-900 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-slate-400">
           <p>&copy; {new Date().getFullYear()} {BRAND_NAME}. All Rights Reserved.</p>
           <p className="mt-2 md:mt-0">Legacy Grade Engineering.</p>
         </div>

@@ -8,59 +8,6 @@
     <title>OpsVantage Digital | Stewardship Platform</title>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              titan: {
-                950: '#020617', // Deep cinematic background
-                900: '#0f172a',
-                800: '#1e293b',
-                50: '#f8fafc',
-                accent: '#3b82f6', // Trust blue
-                gold: '#d4af37', // Legacy accent
-              },
-            },
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              serif: ['Playfair Display', 'serif'],
-            },
-            animation: {
-              'fade-in': 'fadeIn 1s ease-out forwards',
-              'slide-up': 'slideUp 0.8s ease-out forwards',
-            },
-            keyframes: {
-              fadeIn: {
-                '0%': { opacity: '0' },
-                '100%': { opacity: '1' },
-              },
-              slideUp: {
-                '0%': { transform: 'translateY(20px)', opacity: '0' },
-                '100%': { transform: 'translateY(0)', opacity: '1' },
-              },
-            },
-          },
-        },
-      };
-    </script>
-    <style>
-      /* Custom scrollbar for stewardship feel */
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #020617;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #1e293b;
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #3b82f6;
-      }
-    </style>
   <script type="importmap">
 {
   "imports": {
@@ -73,7 +20,6 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-titan-950 text-slate-300 font-sans antialiased selection:bg-titan-accent selection:text-white">
     <div id="root"></div>

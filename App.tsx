@@ -14,11 +14,17 @@ import Process from './pages/Process';
 import AILab from './pages/AILab';
 
 // GOVERNANCE: Error Boundary for Resilience
-class TitanErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null}> {
-  constructor(props: {children: React.ReactNode}) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
+interface TitanErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface TitanErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class TitanErrorBoundary extends React.Component<TitanErrorBoundaryProps, TitanErrorBoundaryState> {
+  state: TitanErrorBoundaryState = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: Error) {
     return { hasError: true, error };
