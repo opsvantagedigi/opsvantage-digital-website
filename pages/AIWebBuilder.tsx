@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Website, AppView, WebsiteSection } from '../types';
 import { generateWebsite, regenerateSection } from '../geminiService';
-import { RenderSection } from '../components/WebsiteSection';
-import { Plus, Settings, Eye, Magic, Trash, ChevronRight, User as UserIcon, Layout, Globe } from '../components/Icons';
+import { RenderSection } from '../components/WebsiteSection.tsx';
+import { Plus, Settings, Eye, Magic, Trash, ChevronRight, User as UserIcon, Layout, Globe } from '../components/Icons.tsx';
 
 export default function AILab() {
   const [view, setView] = useState<AppView>('landing');
