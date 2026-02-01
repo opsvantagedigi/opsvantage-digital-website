@@ -11,7 +11,7 @@ import Work from './pages/Work';
 import Insights from './pages/Insights';
 import Contact from './pages/Contact';
 import Process from './pages/Process';
-import AILab from './pages/AILab';
+import AILab from './pages/AIWebBuilder';
 
 // GOVERNANCE: Error Boundary for Resilience
 interface TitanErrorBoundaryProps {
