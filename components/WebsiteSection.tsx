@@ -1,5 +1,5 @@
 import React from 'react';
-import { WebsiteSection } from '../types';
+import { WebsiteSection } from '@/types';
 import { CheckCircle2 } from 'lucide-react';
 
 interface RenderSectionProps {

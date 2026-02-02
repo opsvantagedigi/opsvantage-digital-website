@@ -32,7 +32,7 @@ const PricingTier: React.FC<Plan & { onCheckout?: (priceId: string) => void }> =
         {billingCycle && <span className="text-base font-medium text-slate-500 dark:text-slate-400">/{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>}
       </p>
       <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">{description}</p>
-      <ul role="list" className="mt-8 space-y-3 text-sm leading-6 text-slate-600 dark:text-slate-300 flex-grow">
+      <ul role="list" className="mt-8 space-y-3 text-sm leading-6 text-slate-600 dark:text-slate-300 grow">
         {features.map((feature: string) => (
           <li key={feature} className="flex gap-x-3">
             <Check className="h-6 w-5 flex-none text-titan-accent" aria-hidden="true" />
