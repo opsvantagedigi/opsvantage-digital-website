@@ -11,6 +11,7 @@ import Services from './pages/Services';
 import Work from './pages/Work';
 import Insights from './pages/Insights';
 import Contact from './pages/Contact';
+import Pricing from './pages/Pricing';
 import Process from './pages/Process';
 import AILab from './pages/AIWebBuilder';
 
@@ -82,6 +83,7 @@ const LayoutWrapper: React.FC = () => {
           <Route path="/services" element={<Services />} />
           <Route path="/work" element={<Work />} />
           <Route path="/insights" element={<Insights />} />
+          <Route path="/pricing" element={<Pricing />} />
           <Route path="/process" element={<Process />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/ai-lab" element={<AILab />} />

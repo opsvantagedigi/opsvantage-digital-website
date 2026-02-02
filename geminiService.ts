@@ -22,15 +22,20 @@ export const generateWebsite = async (niche: string, description: string): Promi
 
 export const regenerateSection = async (section: WebsiteSection, prompt: string): Promise<WebsiteSection> => {
   console.log(`Regenerating section ${section.id} with prompt: ${prompt}`);
-  // TODO: Implement a '/api/regenerate' endpoint similar to the generate one.
-  await new Promise(resolve => setTimeout(resolve, 500));
   
-  return {
-    ...section,
-    content: {
-      ...section.content,
-      title: (section.content.title || '') + ' (Updated)',
-      text: `Updated based on prompt: "${prompt}"`,
-    }
-  };
+  const response = await fetch('/api/regenerate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ section, prompt }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to regenerate section from API.');
+  }
+
+  const updatedSectionData: WebsiteSection = await response.json();
+  return updatedSectionData;
 };

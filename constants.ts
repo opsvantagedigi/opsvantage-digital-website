@@ -8,6 +8,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Services', path: '/services' },
   { label: 'Work', path: '/work' },
   { label: 'Insights', path: '/insights' },
+  { label: 'Pricing', path: '/pricing' },
   { label: 'AI Lab', path: '/ai-lab' },
   { label: 'Process', path: '/process' },
 ];
