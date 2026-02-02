@@ -20,8 +20,8 @@ export async function Navbar() {
         <div className="hidden md:flex items-center gap-8">
           {NAV_ITEMS.map((item) => (
             <NavLink
-              key={item.path}
-              to={item.path}
+              key={item.path} 
+              href={item.path}
               className={({ isActive }: { isActive: boolean }) =>
                 `text-sm font-medium tracking-wide transition-colors duration-300 ${
                   isActive ? 'text-white' : 'text-slate-400 hover:text-white'

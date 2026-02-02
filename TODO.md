@@ -1,11 +1,7 @@
-# Todo List - Phase 6: Monetization & API Integration
+# Todo List - Phase 3: CMS & Dynamic Content
 
-- [x] **Monetization:** Design and build the `/pricing` page with clear value tiers.
-- [x] **Monetization:** Implement Stripe Checkout for subscription handling.
-- [x] **API:** Research and select a database provider (e.g., Vercel Postgres, Supabase).
-- [x] **API:** Integrate Supabase client and create example API route.
-- [x] **API:** Implement user authentication flow (login, register, callback).
-- [x] **API:** Replace mock data in `/api/dashboard` with Supabase data.
-- [x] **API:** Create client-side dashboard page.
-- [x] **Governance:** Add E2E tests for auth and payment flows using Playwright.
-- [x] **Governance:** Add unit tests for new API routes.
+- [ ] **CMS:** Set up a new project in Sanity.io.
+- [ ] **CMS:** Define schemas for Services, Work (Case Studies), and Insights (Blog Posts).
+- [ ] **API:** Create API routes to fetch dynamic content from Sanity.
+- [ ] **Frontend:** Build dynamic pages for `/services`, `/work`, and `/insights` using the fetched data.
+- [ ] **Frontend:** Replace static content on the Home page with data from the CMS.

@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - Architectural Consolidation
+
+This is a major release that completes the full architectural migration to the Next.js App Router. This initiative resolves all previous build instability and aligns the project with its technical blueprint, creating a stable foundation for future development.
+
+### Changed
+- **Framework:** The entire project is now a pure Next.js App Router application. All Vite and React Router dependencies and configurations have been removed.
+- **File Structure:** All pages and API routes have been migrated from the legacy `pages` directory and root into the `app` directory.
+- **Routing:** All client-side routing now uses Next.js's native `Link` component and `usePathname` hook. The custom `NavLink` component has been refactored accordingly.
+- **API:** All API routes have been updated to use the App Router's `route.ts` convention and `NextResponse` object.
+- **Dependencies:** `package.json` has been overhauled to remove conflicting libraries and align with a pure Next.js setup.
+
+### Added
+- **Root Layout:** A new `app/layout.tsx` file now serves as the single entry point for the application's UI shell.
+- **Home Page:** A new `app/page.tsx` has been created as the application's landing page.
+
+### Removed
+- All legacy files from the `pages/` directory and `components/` directory.
+- All Vite and React Router dependencies.
+
 ## [2.0.2] - Build Stability Fixes
 
 This patch release addresses critical build errors to ensure a stable development and deployment environment.
