@@ -68,27 +68,36 @@ const ScrollToTop = () => {
   return null;
 };
 
+const LayoutWrapper: React.FC = () => {
+  const location = useLocation();
+  const isAILabPage = location.pathname.startsWith('/ai-lab');
+
+  return (
+    <div className="flex flex-col min-h-screen bg-titan-950 text-slate-200">
+      {!isAILabPage && <Navbar />}
+      <main className="flex-grow relative">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/work" element={<Work />} />
+          <Route path="/insights" element={<Insights />} />
+          <Route path="/process" element={<Process />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/ai-lab" element={<AILab />} />
+          <Route path="*" element={<Home />} /> 
+        </Routes>
+      </main>
+      {!isAILabPage && <Footer />}
+    </div>
+  );
+};
+
 const App: React.FC = () => {
   return (
     <TitanErrorBoundary>
       <Router>
         <ScrollToTop />
-        <div className="flex flex-col min-h-screen bg-titan-950 text-slate-200">
-          <Navbar />
-          <main className="flex-grow relative">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/services" element={<Services />} />
-              <Route path="/work" element={<Work />} />
-              <Route path="/insights" element={<Insights />} />
-              <Route path="/process" element={<Process />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/ai-lab" element={<AILab />} />
-              <Route path="*" element={<Home />} /> 
-            </Routes>
-          </main>
-          <Footer />
-        </div>
+        <LayoutWrapper />
       </Router>
     </TitanErrorBoundary>
   );
