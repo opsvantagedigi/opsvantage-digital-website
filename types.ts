@@ -50,3 +50,13 @@ export interface InsightPost {
     category: string;
     readTime: string;
 }
+
+export interface Plan {
+  plan: string;
+  price: string;
+  description: string;
+  features: string[];
+  isFeatured?: boolean;
+  priceId?: string;
+  billingCycle?: 'monthly' | 'yearly';
+}
