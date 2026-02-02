@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { createClient } from './lib/supabase/server';
 import type { Project } from './types';
 
 export async function GET(request: Request) {
@@ -12,7 +11,7 @@ export async function GET(request: Request) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
     }
 
     // Fetch dashboard data for the authenticated user.
@@ -41,14 +40,14 @@ export async function GET(request: Request) {
       },
     };
 
-    return NextResponse.json(dashboardData);
+    return new Response(JSON.stringify(dashboardData), { headers: { 'Content-Type': 'application/json' } });
 
   } catch (err) {
     const error = err as Error;
     console.error('DASHBOARD_API_ERROR:', error.message);
-    return NextResponse.json(
-      { error: 'Failed to fetch dashboard data.' },
-      { status: 500 }
+    return new Response(
+      JSON.stringify({ error: 'Failed to fetch dashboard data.' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 }

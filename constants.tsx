@@ -2,8 +2,7 @@
 
 import { NavItem } from './types';
 import React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link as RouterLink, NavLink as RouterNavLink, useLocation } from 'react-router-dom';
 import { ShieldCheck, BarChart3, Globe2, Cpu, Users, Layers } from 'lucide-react';
 
 // GOVERNANCE: Centralized Configuration
@@ -65,32 +64,22 @@ export const SERVICES_DATA = [
   },
 ];
 
-// GOVERNANCE: Abstracting router components allows for easier migration.
-// This now wraps React Router's Link component.
-export { Link };
+// Abstraction for Link components
+export const Link: React.FC<{ href: string; className?: string; children: React.ReactNode }> = ({ href, className, children }) => (
+  <RouterLink to={href} className={className}>
+    {children}
+  </RouterLink>
+);
 
-interface NavLinkProps extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'className'> {
-  to: string;
-  className?: string | ((props: { isActive: boolean }) => string);
-}
-
-// A NavLink component compatible with React Router
-export const NavLink: React.FC<NavLinkProps> = ({ to, className, children, onClick, ...props }) => {
-  const pathname = usePathname();
-  
-  // Strict Active Matching
-  const normalize = (p: string) => p.endsWith('/') && p.length > 1 ? p.slice(0, -1) : p;
-  const current = normalize(pathname);
-  const target = normalize(to.startsWith('/') ? to : '/' + to);
-  
-  // Matches exact path or subpaths (except root which must be exact)
-  const isActive = target === '/' ? current === '/' : current.startsWith(target);
+export const NavLink: React.FC<{ href: string; className?: string | ((props: { isActive: boolean }) => string); children: React.ReactNode }> = ({ href, className, children }) => {
+  const location = useLocation();
+  const isActive = location.pathname === href;
 
   const computedClassName = typeof className === 'function' ? className({ isActive }) : className;
-  
+
   return (
-    <Link href={to} onClick={onClick} className={`${computedClassName || ''}`} {...props}>
+    <RouterNavLink to={href} className={computedClassName}>
       {children}
-    </Link>
+    </RouterNavLink>
   );
 };
