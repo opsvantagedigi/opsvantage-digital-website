@@ -1,5 +1,15 @@
 import React from 'react';
 import { Check } from 'lucide-react';
+import { loadStripe, Stripe } from '@stripe/stripe-js';
+import { Link } from '../constants';
+
+let stripePromise: Promise<Stripe | null>;
+const getStripe = () => {
+  if (!stripePromise) {
+    stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+  }
+  return stripePromise;
+};
 
 const PricingTier: React.FC<{
   plan: string;
@@ -7,7 +17,9 @@ const PricingTier: React.FC<{
   description: string;
   features: string[];
   isFeatured?: boolean;
-}> = ({ plan, price, description, features, isFeatured }) => {
+  priceId?: string;
+  onCheckout?: (priceId: string) => void;
+}> = ({ plan, price, description, features, isFeatured, priceId, onCheckout }) => {
   const featuredClasses = isFeatured
     ? 'bg-titan-900 dark:bg-titan-800 border-titan-accent'
     : 'bg-white dark:bg-titan-900 border-slate-200 dark:border-titan-800';
@@ -32,17 +44,39 @@ const PricingTier: React.FC<{
           </li>
         ))}
       </ul>
-      <a
-        href="#"
-        className={`mt-8 block rounded-md py-3 px-3 text-center text-sm font-semibold leading-6 ${buttonClasses} transition-colors`}
-      >
-        Get started
-      </a>
+      {priceId && onCheckout ? (
+        <button
+          onClick={() => onCheckout(priceId)}
+          className={`mt-8 block rounded-md py-3 px-3 text-center text-sm font-semibold leading-6 ${buttonClasses} transition-colors`}
+        >
+          Get started
+        </button>
+      ) : (
+        <Link
+          to="/contact"
+          className={`mt-8 block rounded-md py-3 px-3 text-center text-sm font-semibold leading-6 ${buttonClasses} transition-colors`}
+        >
+          Contact Us
+        </Link>
+      )}
     </div>
   );
 };
 
 const Pricing: React.FC = () => {
+  const handleCheckout = async (priceId: string) => {
+    const stripe = await getStripe();
+    if (!stripe) return;
+
+    const response = await fetch('/api/create-checkout-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ priceId }),
+    });
+    const session = await response.json();
+    await stripe.redirectToCheckout({ sessionId: session.sessionId });
+  };
+
   return (
     <div className="py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -66,6 +100,8 @@ const Pricing: React.FC = () => {
               'Community support',
               'Standard performance',
             ]}
+            priceId="price_placeholder_hobby" // Replace with your actual Price ID
+            onCheckout={handleCheckout}
           />
           <PricingTier
             plan="Pro"
@@ -78,7 +114,9 @@ const Pricing: React.FC = () => {
               'Priority email support',
               'Enhanced performance',
             ]}
+            priceId="price_placeholder_pro" // Replace with your actual Price ID
             isFeatured={true}
+            onCheckout={handleCheckout}
           />
           <PricingTier
             plan="Enterprise"
@@ -91,6 +129,7 @@ const Pricing: React.FC = () => {
               '24/7 premium support',
               'Enterprise-grade security',
             ]}
+            // No priceId for "Contact Us" tier
           />
         </div>
       </div>
