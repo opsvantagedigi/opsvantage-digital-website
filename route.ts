@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
-import type { Project } from '@/types/index';
+import type { Project } from './types';
 
 export async function GET(request: Request) {
   const supabase = createClient();
