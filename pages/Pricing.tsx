@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link } from '../constants';
 import { loadStripe, Stripe } from '@stripe/stripe-js';
 
 let stripePromise: Promise<Stripe | null>;
