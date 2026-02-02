@@ -13,7 +13,7 @@ const getStripe = () => {
   return stripePromise;
 };
 
-import { Plan } from '../types';
+import { Plan } from '@/types/index';
 
 const PricingTier: React.FC<Plan & { onCheckout?: (priceId: string) => void }> = ({ plan, price, description, features, isFeatured, priceId, onCheckout, billingCycle }) => {
   const featuredClasses = isFeatured
