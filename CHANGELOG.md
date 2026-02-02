@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.2] - Build Stability Fixes
+
+This patch release addresses critical build errors to ensure a stable development and deployment environment.
+
+### Fixed
+- **TypeScript Path Resolution:** Corrected `tsconfig.json` by adding `"baseUrl": "."` to resolve all path alias (`@/*`) import errors.
+- **Supabase Server Client:** Refactored the server-side Supabase client (`lib/supabase/server.ts`) to fix a type inference issue that was causing build failures on Vercel.
+- **Project Hygiene:** Removed duplicate entries from `TODO.md`.
+
 ## [2.0.1] - Post-Migration Hardening & Refinement
 
 This release focuses on stabilizing the platform after the major architectural migration to Next.js. It includes comprehensive bug fixes, refactoring of core components, and strengthening of our governance layer with unit tests.

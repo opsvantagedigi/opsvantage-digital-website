@@ -1,6 +1,5 @@
 # Todo List - Phase 6: Monetization & API Integration
 
-- [ ] **Monetization:** Design and build the `/pricing` page with clear value tiers.
 - [x] **Monetization:** Design and build the `/pricing` page with clear value tiers.
 - [x] **Monetization:** Implement Stripe Checkout for subscription handling.
 - [x] **API:** Research and select a database provider (e.g., Vercel Postgres, Supabase).
