@@ -5,8 +5,15 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {}
 export const Icon: React.FC<IconProps> = (props) => {
   return (
     <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
-      <path d="M16 3C8.8203 3 3 8.8203 3 16C3 23.1797 8.8203 29 16 29C23.1797 29 29 23.1797 29 16C29 8.8203 23.1797 3 16 3Z" stroke="currentColor" strokeOpacity="0.3" strokeWidth="2.5"/>
-      <path d="M11 20L16 12L21 20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <defs>
+        <radialGradient id="orbGradient" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
+          <stop offset="0%" stopColor="currentColor" stopOpacity="0.6" />
+          <stop offset="90%" stopColor="currentColor" stopOpacity="0.9" />
+        </radialGradient>
+      </defs>
+      <circle cx="16" cy="16" r="14" fill="url(#orbGradient)"/>
+      <path d="M11 20L16 12L21 20" stroke="rgba(0,0,0,0.2)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" transform="translate(0.5, 0.5)"/>
+      <path d="M11 20L16 12L21 20" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 };

@@ -62,7 +62,7 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-titan-950 border-b border-slate-200 dark:border-titan-800 p-6 flex flex-col gap-4 animate-slide-up shadow-2xl max-h-[85vh] overflow-y-auto">
+        <div className="md:hidden absolute top-full left-0 right-0 bg-white/95 dark:bg-titan-950/95 backdrop-blur-sm border-b border-slate-200 dark:border-titan-800 p-6 flex flex-col gap-4 animate-slide-up shadow-2xl max-h-[85vh] overflow-y-auto">
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.path}

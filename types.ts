@@ -11,12 +11,13 @@ export interface User {
 
 export interface WebsiteSection {
   id: string;
-  type: 'hero' | 'features' | 'cta' | 'testimonials' | 'gallery' | 'faq';
+  type: 'hero' | 'features' | 'cta' | 'testimonials' | 'gallery' | 'faq' | 'pricing';
   content: {
     title?: string;
     text?: string;
     image?: string;
     items?: { title: string; text: string }[];
+    testimonials?: { quote: string; author: string; role: string; }[];
   };
 }
 
