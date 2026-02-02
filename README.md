@@ -45,3 +45,5 @@ Open http://localhost:3000 with your browser to see the result.
 - `npm run build`: Creates a production-ready build.
 - `npm run start`: Starts the production server (requires a build first).
 - `npm run lint`: Runs ESLint to check for code quality issues.
+- `npm run test:unit`: Runs unit tests with Jest.
+- `npm run test:e2e`: Runs end-to-end tests with Playwright.
