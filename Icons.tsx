@@ -13,6 +13,7 @@ import {
   Menu,
   ArrowRight,
   CheckCircle,
+  Briefcase,
 } from 'lucide-react';
 
 const iconMap = {
@@ -28,6 +29,7 @@ const iconMap = {
   menu: Menu,
   arrowRight: ArrowRight,
   checkCircle: CheckCircle,
+  briefcase: Briefcase,
 };
 
 export type IconName = keyof typeof iconMap;
