@@ -2,6 +2,7 @@ import React from 'react';
 import { HashRouter as Router, Routes, Route, useLocation } from './constants';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
+import { ScrollToTopButton } from './components/ui/ScrollToTopButton';
 
 // GOVERNANCE: Static Imports for Stability
 // Switching to static imports ensures all modules are loaded immediately, preventing runtime fetch errors.
@@ -73,7 +74,7 @@ const LayoutWrapper: React.FC = () => {
   const isAILabPage = location.pathname.startsWith('/ai-lab');
 
   return (
-    <div className="flex flex-col min-h-screen bg-titan-950 text-slate-200">
+    <div className="flex flex-col min-h-screen bg-white text-slate-900 dark:bg-titan-950 dark:text-slate-200 pb-16">
       {!isAILabPage && <Navbar />}
       <main className="flex-grow relative">
         <Routes>
@@ -88,6 +89,7 @@ const LayoutWrapper: React.FC = () => {
         </Routes>
       </main>
       {!isAILabPage && <Footer />}
+      {!isAILabPage && <ScrollToTopButton />}
     </div>
   );
 };

@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User, Website, AppView, WebsiteSection } from '../types';
 import { generateWebsite, regenerateSection } from '../geminiService.ts';
 import { RenderSection } from '../components/WebsiteSection.tsx';
-import { Plus, Settings, Eye, Magic, Trash, ChevronRight, User as UserIcon, Layout, Globe } from '../components/Icons.tsx';
+import { Plus, Settings, Eye, Magic, Trash, ChevronRight, User as UserIcon, Layout } from '../components/Icons.tsx';
+import { Logo } from '../components/Logo.tsx';
+import { Icon } from '../components/Icon.tsx';
 
 export default function AILab() {
   const [view, setView] = useState<AppView>('landing');
@@ -113,10 +115,7 @@ export default function AILab() {
     return (
       <div className="min-h-screen bg-titan-950 text-white">
         <nav className="p-6 flex justify-between items-center max-w-7xl mx-auto">
-          <div className="flex items-center gap-2 font-bold font-serif text-2xl text-titan-accent">
-            <Globe />
-            <span>OpsVantage Digital</span>
-          </div>
+          <Logo />
           <button onClick={() => setView('auth')} className="bg-titan-accent text-white px-6 py-2 rounded-full font-medium hover:bg-blue-500 transition">
             Get Started
           </button>
@@ -150,7 +149,7 @@ export default function AILab() {
       <div className="min-h-screen bg-titan-950 flex items-center justify-center p-6">
         <div className="bg-titan-900 p-8 md:p-12 rounded-3xl shadow-2xl max-w-md w-full border border-titan-800 animate-in fade-in zoom-in duration-300">
           <div className="text-center mb-10">
-            <div className="flex justify-center mb-4 text-titan-accent"><Globe /></div>
+            <div className="flex justify-center mb-4 text-titan-accent"><Icon /></div>
             <h2 className="text-3xl font-bold font-serif text-white">Create Account</h2>
             <p className="text-slate-400 mt-2">Join thousands of businesses using OpsVantage Digital.</p>
           </div>
@@ -179,9 +178,9 @@ export default function AILab() {
     return (
       <div className="min-h-screen bg-titan-950 flex">
         <aside className="w-72 bg-titan-900 border-r border-titan-800 p-8 hidden lg:flex flex-col">
-          <div className="flex items-center gap-2 font-bold font-serif text-2xl text-titan-accent mb-12">
-            <Globe />
-            <span>OpsVantage</span>
+          <div className="flex items-center gap-3 mb-12">
+            <Icon className="text-titan-accent" />
+            <span className="text-2xl font-serif font-bold tracking-tight text-white">OpsVantage</span>
           </div>
           <nav className="space-y-2 flex-1">
             <button className="w-full flex items-center gap-3 px-4 py-3 bg-titan-accent/10 text-titan-accent rounded-xl font-bold transition">

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from '../constants';
 import { Menu, X, ArrowRight } from 'lucide-react';
-import { NAV_ITEMS, BRAND_NAME } from '../constants';
+import { NAV_ITEMS } from '../constants';
+import { Logo } from './Logo';
+import { ThemeToggle } from './ui/ThemeToggle';
 
 export const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -22,16 +24,15 @@ export const Navbar: React.FC = () => {
   }, [location]);
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-[999] transition-all duration-300 ${isScrolled ? 'py-4 bg-titan-950/80 backdrop-blur-md border-b border-white/5' : 'py-8 bg-transparent'}`}>
+    <nav className="fixed top-0 left-0 right-0 z-[999] transition-all duration-300 py-4 bg-titan-950/80 backdrop-blur-md border-b border-white/5">
       <div className="container mx-auto px-6 flex justify-between items-center">
         {/* Brand */}
-        <NavLink to="/" className="text-2xl font-serif font-bold tracking-tight text-white flex items-center gap-2 cursor-pointer z-[1000]">
-          <div className="w-2 h-2 bg-titan-accent rounded-full animate-pulse" />
-          {BRAND_NAME}
+        <NavLink to="/" className="cursor-pointer z-[1000]">
+          <Logo />
         </NavLink>
 
         {/* Desktop Links */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex items-center gap-6">
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.path}
@@ -43,7 +44,8 @@ export const Navbar: React.FC = () => {
               {item.label}
             </NavLink>
           ))}
-          <NavLink to="/contact" className="ml-4 px-5 py-2 text-sm font-medium bg-white text-titan-950 rounded-full hover:bg-slate-200 transition-colors cursor-pointer">
+          <ThemeToggle />
+          <NavLink to="/contact" className="ml-2 px-5 py-2 text-sm font-medium bg-white text-titan-950 rounded-full hover:bg-slate-200 transition-colors cursor-pointer">
             Start Project
           </NavLink>
         </div>
