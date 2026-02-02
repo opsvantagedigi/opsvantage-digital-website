@@ -11,6 +11,8 @@ import {
   Layout,
   Globe,
   Menu,
+  ArrowRight,
+  CheckCircle,
 } from 'lucide-react';
 
 const iconMap = {
@@ -24,6 +26,8 @@ const iconMap = {
   layout: Layout,
   globe: Globe,
   menu: Menu,
+  arrowRight: ArrowRight,
+  checkCircle: CheckCircle,
 };
 
 export type IconName = keyof typeof iconMap;

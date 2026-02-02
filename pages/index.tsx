@@ -5,99 +5,76 @@ import { BentoGrid, BentoItem } from '@/BentoGrid';
 import { Sparkles } from '@/Sparkles';
 import { SERVICES_DATA } from '@/constants';
 import Link from 'next/link';
+import { Icon } from '@/Icons';
 
 const Home: React.FC = () => {
   return (
     <>
       {/* SECTION: Hero */}
-      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-        <Sparkles />
-        
-        {/* Cinematic Gradient Backdrop */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-titan-accent/5 rounded-full blur-[120px] pointer-events-none" />
+      <section className="relative min-h-screen flex flex-col justify-center items-center text-left p-8">
+      <div className="max-w-4xl w-full">
+        <div className="mb-8">
+          <p className="text-sm uppercase tracking-widest text-gray-400">System Override: Active</p>
+          <h1 className="text-6xl font-bold text-white">Build for Legacy.</h1>
+          <h2 className="text-6xl font-light text-gray-400">Scale with Integrity.</h2>
+        </div>
 
-        <div className="container mx-auto px-6 relative z-10 text-center">
-            <div className="inline-block mb-6 px-4 py-1.5 rounded-full border border-titan-800 bg-titan-950/50 backdrop-blur-sm">
-                <span className="text-xs font-medium text-titan-accent uppercase tracking-widest">System Override: Active</span>
+        <p className="text-lg text-gray-300 mb-8 max-w-2xl">
+          OpsVantage is the digital stewardship platform for forward-thinking enterprises. We engineer pixel-perfect, resilient digital ecosystems.
+        </p>
+
+        <div className="flex items-center space-x-4 mb-16">
+          <a href="/work" className="text-white hover:text-gray-300 flex items-center">
+            View Our Work <Icon name="arrowRight" className="ml-2" />
+          </a>
+          <a href="/contact" className="text-white hover:text-gray-300">Schedule Audit</a>
+        </div>
+
+        <div className="space-y-12">
+          <div>
+            <h3 className="text-2xl font-semibold text-white mb-2">Cinematic Stewardship</h3>
+            <p className="text-gray-400">We don't just write code; we uphold a doctrine of care. Every pixel is audited, every interaction is intentional. This is "Legacy Grade" engineering.</p>
+          </div>
+
+          <div>
+            <h3 className="text-2xl font-semibold text-white mb-2">The Autonomous Matrix</h3>
+            <div className="flex items-start">
+              <Icon name="checkCircle" className="text-green-500 mr-4 mt-1" size={24} />
+              <p className="text-gray-400">Our systems self-correct. We implement automated governance (Loop A, B, C) to ensure your digital infrastructure never decays.</p>
             </div>
-            
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif font-bold text-white mb-8 leading-tight tracking-tight animate-slide-up">
-            Build for <span className="text-transparent bg-clip-text bg-gradient-to-r from-titan-accent to-white">Legacy.</span><br />
-            Scale with <span className="italic font-light text-slate-400">Integrity.</span>
-          </h1>
-          
-          <p className="max-w-2xl mx-auto text-lg md:text-xl text-slate-400 mb-12 leading-relaxed animate-slide-up" style={{ animationDelay: '0.2s' }}>
-            OpsVantage is the digital stewardship platform for forward-thinking enterprises. We engineer pixel-perfect, resilient digital ecosystems.
-          </p>
+          </div>
 
-          <div className="flex flex-col md:flex-row justify-center items-center gap-6 animate-slide-up" style={{ animationDelay: '0.4s' }}>
-            <Link href="/work">
-                <MagneticButton className="w-full md:w-auto">View Our Work <ArrowRight className="inline w-4 h-4" /></MagneticButton>
-            </Link>
-            <Link href="/contact">
-                <MagneticButton variant="secondary" className="w-full md:w-auto">Schedule Audit</MagneticButton>
-            </Link>
+          <div>
+            <h3 className="text-2xl font-semibold text-white mb-2">Visual Doctrine</h3>
+            <p className="text-gray-400">Aggressive whitespace. Motion that guides, not distracts. Aesthetics that command authority.</p>
+          </div>
+
+          <div>
+            <h3 className="text-2xl font-semibold text-white mb-2">Teachable Code</h3>
+            <p className="text-gray-400">We build so you can inherit. Clean, documented, modular architectures that your internal teams can own.</p>
+          </div>
+
+          <div>
+            <h3 className="text-2xl font-semibold text-white mb-2">Performance as a Feature</h3>
+            <p className="text-gray-400 mb-4">Lighthouse scores are not vanity metrics; they are indicators of user respect. We target 100/100 across the board.</p>
+            <div className="flex space-x-8 text-white">
+              <div>
+                <span className="text-4xl font-bold">100</span>
+                <p className="text-sm text-gray-400">Performance</p>
+              </div>
+              <div>
+                <span className="text-4xl font-bold">100</span>
+                <p className="text-sm text-gray-400">Accessibility</p>
+              </div>
+              <div>
+                <span className="text-4xl font-bold">0s</span>
+                <p className="text-sm text-gray-400">Downtime</p>
+              </div>
+            </div>
           </div>
         </div>
-      </section>
-
-      {/* SECTION: The Doctrine (Philosophy) */}
-      <section className="py-24 md:py-32 relative">
-        <div className="container mx-auto px-6">
-            <div className="max-w-3xl mx-auto text-center mb-20">
-                <h2 className="text-3xl md:text-4xl font-serif font-bold text-white mb-6">Cinematic Stewardship</h2>
-                <p className="text-slate-400 leading-relaxed">
-                    We don't just write code; we uphold a doctrine of care. Every pixel is audited, every interaction is intentional. This is "Legacy Grade" engineering.
-                </p>
-            </div>
-
-            <BentoGrid>
-                <BentoItem colSpan={2} className="min-h-[300px] flex items-end">
-                    <div className="relative z-10">
-                        <h3 className="text-2xl font-bold text-white mb-2">The Autonomous Matrix</h3>
-                        <p className="text-slate-400">Our systems self-correct. We implement automated governance (Loop A, B, C) to ensure your digital infrastructure never decays.</p>
-                    </div>
-                    <div className="absolute top-0 right-0 p-8 opacity-20">
-                        <CheckCircle2 size={120} />
-                    </div>
-                </BentoItem>
-                <BentoItem>
-                    <div className="h-full flex flex-col justify-center">
-                        <h3 className="text-xl font-bold text-white mb-2">Visual Doctrine</h3>
-                        <p className="text-slate-400 text-sm">Aggressive whitespace. Motion that guides, not distracts. Aesthetics that command authority.</p>
-                    </div>
-                </BentoItem>
-                <BentoItem>
-                    <div className="h-full flex flex-col justify-center">
-                        <h3 className="text-xl font-bold text-white mb-2">Teachable Code</h3>
-                        <p className="text-slate-400 text-sm">We build so you can inherit. Clean, documented, modular architectures that your internal teams can own.</p>
-                    </div>
-                </BentoItem>
-                <BentoItem colSpan={2}>
-                    <div className="flex flex-col md:flex-row gap-8 items-center">
-                        <div className="flex-1">
-                             <h3 className="text-2xl font-bold text-white mb-2">Performance as a Feature</h3>
-                             <p className="text-slate-400">Lighthouse scores are not vanity metrics; they are indicators of user respect. We target 100/100 across the board.</p>
-                        </div>
-                        <div className="flex gap-4">
-                            <div className="text-center">
-                                <span className="block text-3xl font-bold text-titan-accent">100</span>
-                                <span className="text-xs text-slate-500 uppercase">Performance</span>
-                            </div>
-                            <div className="text-center">
-                                <span className="block text-3xl font-bold text-titan-accent">100</span>
-                                <span className="text-xs text-slate-500 uppercase">Accessibility</span>
-                            </div>
-                            <div className="text-center">
-                                <span className="block text-3xl font-bold text-titan-accent">0s</span>
-                                <span className="text-xs text-slate-500 uppercase">Downtime</span>
-                            </div>
-                        </div>
-                    </div>
-                </BentoItem>
-            </BentoGrid>
-        </div>
-      </section>
+      </div>
+    </section>
 
       {/* SECTION: Selected Capabilities */}
       <section className="py-24 bg-titan-900/30 border-y border-white/5">

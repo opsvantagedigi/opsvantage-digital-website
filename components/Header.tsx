@@ -20,15 +20,15 @@ export const Header = () => {
         <Link href="/" className="flex items-center gap-2 text-white font-bold text-xl">
           <span>OpsVantage</span>
         </Link>
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
-            <Link key={link.href} href={link.href} className="text-slate-300 hover:text-white transition-colors">
+            <Link key={link.href} href={link.href} className="text-slate-300 hover:text-white transition-colors text-lg">
               {link.label}
             </Link>
           ))}
         </nav>
         <div className="flex items-center gap-4">
-            <Link href="/AILab" className="hidden md:inline-block bg-green-500 text-titan-950 font-bold py-2 px-4 rounded-md hover:bg-green-400 transition-colors">
+            <Link href="/AIWebBuilder" className="hidden md:inline-block bg-green-500 text-titan-950 font-bold py-2 px-4 rounded-md hover:bg-green-400 transition-colors">
                 AI Builder
             </Link>
             <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden text-white p-2">
