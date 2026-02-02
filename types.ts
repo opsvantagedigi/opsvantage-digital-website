@@ -69,4 +69,5 @@ export interface Project {
   tags: string[];
   status: 'active' | 'inactive';
   created_at: string;
+  user_id?: string;
 }
