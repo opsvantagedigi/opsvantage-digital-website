@@ -71,18 +71,25 @@ const ScrollToTop = () => {
 
 const LayoutWrapper: React.FC = () => {
   const location = useLocation();
+  const isAILabPage = location.pathname.startsWith('/ai-lab');
 
   return (
-    <div className="flex flex-col min-h-screen bg-white text-slate-900 dark:bg-titan-950 dark:text-slate-200 pt-20 pb-16">
-      <Navbar />
+    <div className="flex flex-col min-h-screen bg-white text-slate-900 dark:bg-titan-950 dark:text-slate-200 pt-20">
+      {!isAILabPage && <Navbar />}
       <main className="flex-grow relative">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/work" element={<Work />} />
+          <Route path="/insights" element={<Insights />} />
+          <Route path="/process" element={<Process />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/ai-lab" element={<AILab />} />
           <Route path="*" element={<Home />} /> 
         </Routes>
       </main>
-      <Footer />
-      <ScrollToTopButton />
+      {!isAILabPage && <Footer />}
+      {!isAILabPage && <ScrollToTopButton />}
     </div>
   );
 };

@@ -24,7 +24,7 @@ export const Navbar: React.FC = () => {
   }, [location]);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-[999] transition-all duration-300 py-4 bg-white/80 dark:bg-titan-950/80 backdrop-blur-md border-b border-slate-200 dark:border-white/5">
+    <nav className={`fixed top-0 left-0 right-0 z-[999] transition-all duration-300 ${isScrolled ? 'py-4 bg-white/80 dark:bg-titan-950/80 backdrop-blur-md border-b border-slate-200 dark:border-white/5' : 'py-8 bg-transparent'}`}>
       <div className="container mx-auto px-6 flex justify-between items-center">
         {/* Brand */}
         <NavLink to="/" className="cursor-pointer z-[1000]">
@@ -32,7 +32,7 @@ export const Navbar: React.FC = () => {
         </NavLink>
 
         {/* Desktop Links */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-8">
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.path}
@@ -52,7 +52,7 @@ export const Navbar: React.FC = () => {
 
         {/* Mobile Toggle */}
         <button 
-          className="md:hidden text-white cursor-pointer z-[1000]"
+          className="md:hidden text-slate-900 dark:text-white cursor-pointer z-[1000]"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           aria-label="Toggle menu"
         >
