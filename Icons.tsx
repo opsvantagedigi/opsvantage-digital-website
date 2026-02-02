@@ -1,23 +1,40 @@
 import React from 'react';
-import { 
-  Plus as LucidePlus, 
-  Settings as LucideSettings, 
-  Eye as LucideEye, 
-  Sparkles as LucideMagic, // Using Sparkles for Magic
-  Trash2 as LucideTrash, // Using Trash2 for Trash
-  ChevronRight as LucideChevronRight, 
-  User as LucideUser, 
-  Layout as LucideLayout, 
-  Globe as LucideGlobe
+import {
+  LucideProps,
+  Plus,
+  Settings,
+  Eye,
+  Sparkles,
+  Trash2,
+  ChevronRight,
+  User,
+  Layout,
+  Globe,
 } from 'lucide-react';
 
-// Re-exporting from lucide-react to satisfy the imports in AIWebBuilder.tsx
-export const Plus = LucidePlus;
-export const Settings = LucideSettings;
-export const Eye = LucideEye;
-export const Magic = LucideMagic;
-export const Trash = LucideTrash;
-export const ChevronRight = LucideChevronRight;
-export const User = LucideUser;
-export const Layout = LucideLayout;
-export const Globe = LucideGlobe;
+const iconMap = {
+  plus: Plus,
+  settings: Settings,
+  eye: Eye,
+  magic: Sparkles,
+  trash: Trash2,
+  chevronRight: ChevronRight,
+  user: User,
+  layout: Layout,
+  globe: Globe,
+};
+
+export type IconName = keyof typeof iconMap;
+
+interface IconProps extends LucideProps {
+  name: IconName;
+}
+
+export const Icon: React.FC<IconProps> = ({ name, ...props }) => {
+  const LucideIcon = iconMap[name];
+
+  // Return null or a fallback if the icon name is invalid
+  if (!LucideIcon) return null;
+
+  return <LucideIcon {...props} />;
+};
