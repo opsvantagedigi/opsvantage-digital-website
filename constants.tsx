@@ -1,6 +1,6 @@
 'use client';
 
-import { NavItem } from '../types/index';
+import { NavItem } from './types';
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
