@@ -1,4 +1,4 @@
-import { Website, WebsiteSection } from './types/index';
+import { Website, WebsiteSection } from './types';
 
 export const generateWebsite = async (niche: string, description: string): Promise<Website> => {
   console.log(`Generating website for niche: ${niche}, description: ${description}`);

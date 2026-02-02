@@ -1,4 +1,4 @@
-import { NavItem } from '@/types/index';
+import { NavItem } from '../types';
 import { Code, BarChart, Shield } from 'lucide-react';
 import React from 'react';
 

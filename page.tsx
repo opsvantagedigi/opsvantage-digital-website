@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { AlertTriangle } from 'lucide-react';
-import type { Project } from '@/types/index';
+import type { Project } from '@/types';
 import LogoutButton from '@/components/LogoutButton';
 
   const getStatusPill = (status: Project['status']) => {
@@ -20,7 +20,7 @@ import LogoutButton from '@/components/LogoutButton';
 
 export default async function DashboardPage() {
   const cookieStore = cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = createClient();
 
   const {
     data: { user },
@@ -129,5 +129,3 @@ export default async function DashboardPage() {
     </div>
   );
 };
-
-export default DashboardPage;

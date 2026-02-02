@@ -2,20 +2,33 @@
 
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
-import { Link } from '../constants';
-import { loadStripe, type Stripe } from '@stripe/stripe-js';
+import Link from 'next/link';
+import type { Stripe } from '@stripe/stripe-js';
 
 let stripePromise: Promise<Stripe | null>;
 const getStripe = () => {
   if (!stripePromise) {
-    stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
+    // Dynamically import loadStripe to keep it out of the main bundle
+    stripePromise = (async () => {
+      const { loadStripe } = await import('@stripe/stripe-js');
+      return loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
+    })();
   }
   return stripePromise;
 };
 
-import { Plan } from '../types';
+interface PricingTierProps {
+  plan: string;
+  price: string;
+  description: string;
+  features: string[];
+  isFeatured?: boolean;
+  priceId?: string;
+  onCheckout?: (priceId: string) => void;
+  billingCycle?: 'monthly' | 'yearly';
+}
 
-const PricingTier: React.FC<Plan & { onCheckout?: (priceId: string) => void }> = ({ plan, price, description, features, isFeatured, priceId, onCheckout, billingCycle }) => {
+const PricingTier: React.FC<PricingTierProps> = ({ plan, price, description, features, isFeatured, priceId, onCheckout, billingCycle }) => {
   const featuredClasses = isFeatured
     ? 'bg-titan-900 dark:bg-titan-800 border-titan-accent'
     : 'bg-white dark:bg-titan-900 border-slate-200 dark:border-titan-800';
@@ -49,7 +62,7 @@ const PricingTier: React.FC<Plan & { onCheckout?: (priceId: string) => void }> =
         </button>
       ) : (
         <Link
-          to="/contact"
+          href="/contact"
           className={`mt-8 block rounded-md py-3 px-3 text-center text-sm font-semibold leading-6 ${buttonClasses} transition-colors`}
         >
           Contact Us
@@ -63,7 +76,10 @@ const Pricing: React.FC = () => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const handleCheckout = async (priceId: string) => {
     const stripe = await getStripe();
-    if (!stripe) return;
+    if (!stripe) {
+      console.error("Stripe.js has not loaded yet.");
+      return;
+    }
 
     const response = await fetch('/api/create-checkout-session', {
       method: 'POST',
@@ -71,7 +87,12 @@ const Pricing: React.FC = () => {
       body: JSON.stringify({ priceId }),
     });
     const session = await response.json();
-    await stripe.redirectToCheckout({ sessionId: session.sessionId });
+    
+    if (session.sessionId) {
+      await stripe.redirectToCheckout({ sessionId: session.sessionId });
+    } else {
+      console.error("Failed to create a checkout session.");
+    }
   };
 
   return (

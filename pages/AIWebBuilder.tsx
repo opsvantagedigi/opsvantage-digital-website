@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Website, AppView, WebsiteSection } from '../types';
-import { generateWebsite, regenerateSection } from '../geminiService.ts';
-import { RenderSection } from '../components/WebsiteSection.tsx';
-import { Plus, Settings, Eye, Magic, Trash, ChevronRight, User as UserIcon, Layout } from '../components/Icons.tsx';
-import { Logo } from '../components/Logo.tsx';
-import { Icon } from '../components/Icon.tsx';
+import { generateWebsite, regenerateSection } from '../geminiService';
+import { RenderSection } from '../components/WebsiteSection';
+import { Plus, Settings, Eye, Magic, Trash, ChevronRight, User as UserIcon, Layout } from '../components/Icons';
+import { Logo } from '../components/Logo';
+import { Icon } from '../components/Icon';
 
 export default function AILab() {
   const [view, setView] = useState<AppView>('landing');
@@ -231,7 +231,7 @@ export default function AILab() {
               {websites.map(site => (
                 <div key={site.id} className="bg-titan-900 rounded-[32px] border border-titan-800 overflow-hidden group hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
                   <div className="h-56 bg-titan-800 relative overflow-hidden">
-                    <img src={`https://picsum.photos/seed/${site.sections[0].content.image}/800/600`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                    <img src={`https://picsum.photos/seed/${site.sections[0].content.image || site.id}/800/600`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                     <div className="absolute inset-0 bg-titan-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 p-6">
                        <button onClick={() => { setActiveSite(site); setView('builder'); }} className="bg-titan-50 text-titan-950 px-4 py-3 rounded-xl font-bold flex-1 text-sm shadow-xl active:scale-95 transition">Edit Design</button>
                        <button onClick={() => { setActiveSite(site); setView('preview'); }} className="bg-titan-accent text-white px-4 py-3 rounded-xl font-bold flex-1 text-sm shadow-xl active:scale-95 transition">Preview Site</button>

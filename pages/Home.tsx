@@ -30,10 +30,10 @@ const Home: React.FC = () => {
           </p>
 
           <div className="flex flex-col md:flex-row justify-center items-center gap-6 animate-slide-up" style={{ animationDelay: '0.4s' }}>
-            <Link to="/work">
+            <Link href="/work">
                 <MagneticButton className="w-full md:w-auto">View Our Work <ArrowRight className="inline w-4 h-4" /></MagneticButton>
             </Link>
-            <Link to="/contact">
+            <Link href="/contact">
                 <MagneticButton variant="secondary" className="w-full md:w-auto">Schedule Audit</MagneticButton>
             </Link>
           </div>
@@ -106,7 +106,7 @@ const Home: React.FC = () => {
                     <h2 className="text-3xl md:text-5xl font-serif font-bold text-white mb-4">Core Capabilities</h2>
                     <p className="text-slate-400 max-w-md">The engine room of OpsVantage. Where strategy meets execution.</p>
                 </div>
-                <Link to="/services" className="text-titan-accent hover:text-white transition-colors mt-6 md:mt-0 flex items-center gap-2">
+                <Link href="/services" className="text-titan-accent hover:text-white transition-colors mt-6 md:mt-0 flex items-center gap-2">
                     View All Services <ArrowRight size={16} />
                 </Link>
             </div>
@@ -140,7 +140,7 @@ const Home: React.FC = () => {
             <p className="text-slate-400 text-lg mb-10 max-w-2xl mx-auto">
                 Engage the Sentient Titan protocol. Let's build a digital future that honors your legacy.
             </p>
-            <Link to="/contact">
+            <Link href="/contact">
                 <MagneticButton className="bg-white text-titan-950 hover:bg-slate-200">Initiate Collaboration</MagneticButton>
             </Link>
          </div>
