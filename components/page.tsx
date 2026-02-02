@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Loader2, LogOut, AlertTriangle } from 'lucide-react';
-import type { Project } from '@/types/index';
+import type { Project } from '../types';
 
 interface DashboardData {
   user: {
