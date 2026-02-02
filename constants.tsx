@@ -1,5 +1,7 @@
 import { NavItem } from './types';
-import React, { useState, useEffect, createContext, useContext, isValidElement, useMemo, useCallback } from 'react';
+import React from 'react';
+import { Link as RouterLink } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { ShieldCheck, BarChart3, Globe2, Cpu, Users, Layers } from 'lucide-react';
 
 // GOVERNANCE: Centralized Configuration
@@ -61,89 +63,19 @@ export const SERVICES_DATA = [
   },
 ];
 
-// --- ACTIVE COMMAND ROUTER ---
-// Replaces passive hash listening with active state control for guaranteed navigation.
-
-const sanitizePath = (hash: string) => {
-  if (!hash) return '/';
-  const path = hash.replace(/^#/, '').split('?')[0];
-  // Ensure path starts with / and handle empty path after hash removal
-  if (path === '' || path === '/') return '/';
-  return path.startsWith('/') ? path : '/' + path;
-};
-
-interface RouterContextType {
-  pathname: string;
-  navigate: (to: string) => void;
-}
-
-const RouterContext = createContext<RouterContextType>({ 
-  pathname: '/', 
-  navigate: () => {} 
-});
-
-export const useLocation = () => useContext(RouterContext);
-export const useNavigate = () => useContext(RouterContext).navigate;
-
-export const HashRouter: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [pathname, setPathname] = useState(sanitizePath(window.location.hash));
-
-  const navigate = useCallback((to: string) => {
-    // 1. Update Browser URL
-    window.location.hash = to;
-    // 2. Force React State Update (Instant Feedback)
-    setPathname(sanitizePath(to));
-    // 3. Scroll to top on navigation
-    window.scrollTo(0, 0);
-  }, []);
-
-  useEffect(() => {
-    const handleHashChange = () => {
-      const newPath = sanitizePath(window.location.hash);
-      setPathname(newPath);
-    };
-
-    window.addEventListener('hashchange', handleHashChange);
-    
-    // Safety: ensure we are in sync on mount
-    if (sanitizePath(window.location.hash) !== pathname) {
-       setPathname(sanitizePath(window.location.hash));
-    }
-
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [pathname]);
-
-  return (
-    <RouterContext.Provider value={{ pathname, navigate }}>
-      {children}
-    </RouterContext.Provider>
-  );
-};
-
-export const Link: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }> = ({ to, children, className, onClick, ...props }) => {
-  const { navigate } = useContext(RouterContext);
-  const href = `#${to.startsWith('/') ? to : '/' + to}`;
-
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault(); // Stop browser default
-    navigate(to);       // Trigger active navigation
-    if (onClick) onClick(e);
-  };
-
-  return (
-    <a href={href} onClick={handleClick} className={`cursor-pointer ${className || ''}`} {...props}>
-      {children}
-    </a>
-  );
-};
+// GOVERNANCE: Abstracting router components allows for easier migration.
+// This now wraps React Router's Link component.
+export const Link = RouterLink;
 
 interface NavLinkProps extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'className'> {
   to: string;
   className?: string | ((props: { isActive: boolean }) => string);
 }
 
+// A NavLink component compatible with React Router
 export const NavLink: React.FC<NavLinkProps> = ({ to, className, children, onClick, ...props }) => {
-  const { pathname, navigate } = useContext(RouterContext);
+  const location = useLocation();
+  const pathname = location.pathname;
   
   // Strict Active Matching
   const normalize = (p: string) => p.endsWith('/') && p.length > 1 ? p.slice(0, -1) : p;
@@ -154,49 +86,10 @@ export const NavLink: React.FC<NavLinkProps> = ({ to, className, children, onCli
   const isActive = target === '/' ? current === '/' : current.startsWith(target);
 
   const computedClassName = typeof className === 'function' ? className({ isActive }) : className;
-  const href = `#${target}`;
-
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    navigate(to);
-    if (onClick) onClick(e);
-  };
   
   return (
-    <a href={href} onClick={handleClick} className={`cursor-pointer ${computedClassName || ''}`} {...props}>
+    <Link to={to} onClick={onClick} className={`${computedClassName || ''}`} {...props}>
       {children}
-    </a>
+    </Link>
   );
-};
-
-export const Routes: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { pathname } = useLocation();
-  
-  let match: React.ReactElement | null = null;
-  let fallback: React.ReactElement | null = null;
-
-  React.Children.forEach(children, (child) => {
-    if (!isValidElement(child)) return;
-    
-    const { path } = child.props as { path: string };
-    
-    // Strict match
-    if (path === pathname) {
-      match = child;
-    }
-    // Catch-all
-    if (path === '*') {
-      fallback = child;
-    }
-  });
-
-  const activeRoute = match || fallback;
-
-  // Direct render of the element prop to avoid component wrapping issues
-  return activeRoute ? (activeRoute.props as any).element : null;
-};
-
-// Route is now just a data carrier, it doesn't need to render anything itself in this pattern
-export const Route: React.FC<{ path: string; element: React.ReactNode }> = ({ element }) => {
-  return <>{element}</>;
 };

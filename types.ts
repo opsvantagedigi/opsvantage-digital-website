@@ -60,3 +60,13 @@ export interface Plan {
   priceId?: string;
   billingCycle?: 'monthly' | 'yearly';
 }
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  liveUrl?: string;
+  repoUrl?: string;
+  tags: string[];
+}
