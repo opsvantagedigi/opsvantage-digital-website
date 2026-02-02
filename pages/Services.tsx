@@ -45,13 +45,11 @@ const servicesSections: WebsiteSection[] = [
 
 const Services = () => {
   return (
-    <div className="min-h-screen bg-titan-950 text-white">
-      <main>
-        {servicesSections.map((section, index) => (
-          <RenderSection key={index} section={section} accentColor="#00F5B3" />
-        ))}
-      </main>
-    </div>
+    <>
+      {servicesSections.map((section, index) => (
+        <RenderSection key={index} section={section} accentColor="#00F5B3" />
+      ))}
+    </>
   );
 };
 

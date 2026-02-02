@@ -10,6 +10,7 @@ import {
   User,
   Layout,
   Globe,
+  Menu,
 } from 'lucide-react';
 
 const iconMap = {
@@ -22,6 +23,7 @@ const iconMap = {
   user: User,
   layout: Layout,
   globe: Globe,
+  menu: Menu,
 };
 
 export type IconName = keyof typeof iconMap;

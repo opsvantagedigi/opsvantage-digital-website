@@ -33,16 +33,14 @@ const aiBuilderSections: WebsiteSection[] = [
 
 const AIWebBuilder = () => {
   return (
-    <div className="min-h-screen bg-titan-950 text-white">
-      <main>
-        {aiBuilderSections.map((section, index) => (
-          <RenderSection key={index} section={section} accentColor="#00F5B3" />
-        ))}
-        <div className="container mx-auto text-center py-16">
-          <p className="text-slate-400">The AI Web Builder is currently in a private beta.</p>
-        </div>
-      </main>
-    </div>
+    <>
+      {aiBuilderSections.map((section, index) => (
+        <RenderSection key={index} section={section} accentColor="#00F5B3" />
+      ))}
+      <div className="container mx-auto text-center py-16">
+        <p className="text-slate-400">The AI Web Builder is currently in a private beta.</p>
+      </div>
+    </>
   );
 };
 

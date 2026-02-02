@@ -45,13 +45,11 @@ const processSections: WebsiteSection[] = [
 
 const Process = () => {
   return (
-    <div className="min-h-screen bg-titan-950 text-white">
-      <main>
-        {processSections.map((section, index) => (
-          <RenderSection key={index} section={section} accentColor="#00F5B3" />
-        ))}
-      </main>
-    </div>
+    <>
+      {processSections.map((section, index) => (
+        <RenderSection key={index} section={section} accentColor="#00F5B3" />
+      ))}
+    </>
   );
 };
 
