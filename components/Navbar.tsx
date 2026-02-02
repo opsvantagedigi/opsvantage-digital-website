@@ -1,12 +1,10 @@
-import { cookies } from 'next/headers';
 import React from 'react';
 import { NAV_ITEMS, BRAND_NAME, Link, NavLink } from '@/constants';
 import { createClient } from '@/lib/supabase/server';
 import { LogoutButton } from '@/components/ui/LogoutButton';
 
 export async function Navbar() {
-  const cookieStore = cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

@@ -1,7 +1,9 @@
-import { NavItem } from './types';
+'use client';
+
+import { NavItem } from '@/types/index';
 import React from 'react';
-import { Link as RouterLink } from 'react-router-dom';
-import { useLocation } from 'react-router-dom';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { ShieldCheck, BarChart3, Globe2, Cpu, Users, Layers } from 'lucide-react';
 
 // GOVERNANCE: Centralized Configuration
@@ -65,7 +67,7 @@ export const SERVICES_DATA = [
 
 // GOVERNANCE: Abstracting router components allows for easier migration.
 // This now wraps React Router's Link component.
-export const Link = RouterLink;
+export { Link };
 
 interface NavLinkProps extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'className'> {
   to: string;
@@ -74,8 +76,7 @@ interface NavLinkProps extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement
 
 // A NavLink component compatible with React Router
 export const NavLink: React.FC<NavLinkProps> = ({ to, className, children, onClick, ...props }) => {
-  const location = useLocation();
-  const pathname = location.pathname;
+  const pathname = usePathname();
   
   // Strict Active Matching
   const normalize = (p: string) => p.endsWith('/') && p.length > 1 ? p.slice(0, -1) : p;
@@ -88,7 +89,7 @@ export const NavLink: React.FC<NavLinkProps> = ({ to, className, children, onCli
   const computedClassName = typeof className === 'function' ? className({ isActive }) : className;
   
   return (
-    <Link to={to} onClick={onClick} className={`${computedClassName || ''}`} {...props}>
+    <Link href={to} onClick={onClick} className={`${computedClassName || ''}`} {...props}>
       {children}
     </Link>
   );
