@@ -1,0 +1,26 @@
+/* TITAN STRATEGY: Import Legacy Branding Tokens */
+/* This ensures the CSS variables defined in your uploaded files are available to Tailwind */
+@import '../branding/colors.css';
+@import '../branding/typography.css';
+@import '../branding/layout.css';
+/* @import '../branding/components.css'; */ /* Optional: if using legacy classes */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tailwind Configuration Mapping */
+@layer base {
+  :root {
+    /* Map Tailwind 'background' to your OpsVantage 'midnight' */
+    --background: var(--ovd-midnight);
+    --foreground: var(--ovd-light);
+    --primary: 217 91% 60%; /* titan-accent */
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+  }
+}
