@@ -69,4 +69,6 @@ export interface Project {
   liveUrl?: string;
   repoUrl?: string;
   tags: string[];
+  status: 'active' | 'inactive';
+  created_at: string;
 }

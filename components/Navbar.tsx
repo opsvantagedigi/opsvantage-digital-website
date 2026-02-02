@@ -24,7 +24,7 @@ export async function Navbar() {
             <NavLink
               key={item.path}
               to={item.path}
-              className={({ isActive }) =>
+              className={({ isActive }: { isActive: boolean }) =>
                 `text-sm font-medium tracking-wide transition-colors duration-300 ${
                   isActive ? 'text-white' : 'text-slate-400 hover:text-white'
                 }`
