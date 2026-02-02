@@ -1,8 +1,8 @@
 /* TITAN STRATEGY: Import Legacy Branding Tokens */
 /* This ensures the CSS variables defined in your uploaded files are available to Tailwind */
-@import '../branding/colors.css';
-@import '../branding/typography.css';
-@import '../branding/layout.css';
+@import './colors.css';
+@import './typography.css';
+@import './layout.css';
 /* @import '../branding/components.css'; */ /* Optional: if using legacy classes */
 
 @tailwind base;

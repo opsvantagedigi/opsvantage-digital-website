@@ -11,9 +11,11 @@
     "test:unit": "jest"
   },
   "dependencies": {
+    "@google/genai": "^1.39.0",
     "@stripe/stripe-js": "^3.5.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.44.2",
+    "autoprefixer": "^10.4.24",
     "lucide-react": "^0.400.0",
     "next": "^16.1.6",
     "react": "^19.2.4",
@@ -35,6 +37,6 @@
     "tailwindcss": "^3.4.3",
     "ts-jest": "^29.1.5",
     "typescript": "^5.5.3",
-    "vercel": "^50.9.6"
+    "vercel": "^32.3.0"
   }
 }

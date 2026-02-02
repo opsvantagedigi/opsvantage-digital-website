@@ -1,6 +1,6 @@
 import type { AppProps } from 'next/app';
 import { Layout } from '@/components/Layout';
-import '@/styles/globals.css'; // Assuming this is your global stylesheet for Tailwind
+import '../globals.css'; // Assuming this is your global stylesheet for Tailwind
 
 function MyApp({ Component, pageProps }: AppProps) {
   return (
