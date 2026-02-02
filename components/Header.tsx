@@ -1,5 +1,8 @@
+'use client';
+
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { Icon } from '@/Icons';
 
 const navLinks = [
@@ -13,6 +16,7 @@ const navLinks = [
 
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { pathname } = useRouter();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-titan-950/80 backdrop-blur-sm border-b border-titan-800">
@@ -20,15 +24,18 @@ export const Header = () => {
         <Link href="/" className="flex items-center gap-2 text-white font-bold text-xl">
           <span>OpsVantage</span>
         </Link>
-        <nav className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
-            <Link key={link.href} href={link.href} className="text-slate-300 hover:text-white transition-colors text-lg">
-              {link.label}
-            </Link>
-          ))}
+        <nav className="hidden md:flex items-center gap-6">
+          {navLinks.map((link) => {
+            const isActive = pathname === link.href;
+            return (
+              <Link key={link.href} href={link.href} className={`transition-colors text-lg ${isActive ? 'text-white font-semibold' : 'text-slate-400 hover:text-white'}`}>
+                {link.label}
+              </Link>
+            );
+          })}
         </nav>
         <div className="flex items-center gap-4">
-            <Link href="/AIWebBuilder" className="hidden md:inline-block bg-green-500 text-titan-950 font-bold py-2 px-4 rounded-md hover:bg-green-400 transition-colors">
+            <Link href="/AILab" className="hidden md:inline-block bg-green-500 text-titan-950 font-bold py-2 px-4 rounded-md hover:bg-green-400 transition-colors">
                 AI Builder
             </Link>
             <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden text-white p-2">
@@ -39,11 +46,14 @@ export const Header = () => {
       {isMenuOpen && (
         <div className="md:hidden bg-titan-900">
           <nav className="flex flex-col items-center gap-4 py-4">
-            {navLinks.map((link) => (
-              <Link key={link.href} href={link.href} className="text-slate-300 hover:text-white transition-colors" onClick={() => setIsMenuOpen(false)}>
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const isActive = pathname === link.href;
+              return (
+                <Link key={link.href} href={link.href} className={`transition-colors ${isActive ? 'text-white font-semibold' : 'text-slate-300 hover:text-white'}`} onClick={() => setIsMenuOpen(false)}>
+                  {link.label}
+                </Link>
+              );
+            })}
           </nav>
         </div>
       )}
