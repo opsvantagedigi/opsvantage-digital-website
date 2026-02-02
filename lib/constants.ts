@@ -25,10 +25,23 @@ export interface ServiceDataItem {
 export const SERVICES_DATA: ServiceDataItem[] = [
     {
         id: 'web-dev',
-        icon: <Code size={32} />,
+        icon: React.createElement(Code, { size: 32 }),
         title: 'Legacy-Grade Web Engineering',
         description: 'We build pixel-perfect, resilient digital ecosystems designed for the 10-year horizon. Our focus is on teachable, maintainable code that your team can inherit with confidence.',
         tags: ['Next.js', 'React', 'Vercel', 'Headless CMS', 'Performance'],
     },
-    // ... other services from the old constants file would go here
+    {
+        id: 'analytics',
+        icon: React.createElement(BarChart, { size: 32 }),
+        title: 'Autonomous Analytics & Insights',
+        description: 'Go beyond vanity metrics. We implement self-correcting analytics loops that provide actionable intelligence, ensuring your digital strategy is always aligned with real-world performance.',
+        tags: ['Data Science', 'BI Dashboards', 'Conversion Funnels', 'A/B Testing'],
+    },
+    {
+        id: 'governance',
+        icon: React.createElement(Shield, { size: 32 }),
+        title: 'Digital Stewardship & Governance',
+        description: 'Your digital presence is an asset. We provide the governance frameworks to protect it, ensuring security, compliance, and operational integrity without sacrificing agility.',
+        tags: ['Security Audits', 'Compliance', 'Infrastructure', 'Maintenance Protocols'],
+    },
 ];
