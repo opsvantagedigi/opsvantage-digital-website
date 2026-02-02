@@ -11,7 +11,7 @@ export interface User {
 
 export interface WebsiteSection {
   id: string;
-  type: string;
+  type: 'hero' | 'features' | 'cta' | 'testimonials' | 'gallery' | 'faq';
   content: {
     title?: string;
     text?: string;

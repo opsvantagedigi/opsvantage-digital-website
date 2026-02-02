@@ -113,9 +113,9 @@ export default function AILab() {
     return (
       <div className="min-h-screen bg-titan-950 text-white">
         <nav className="p-6 flex justify-between items-center max-w-7xl mx-auto">
-          <div className="flex items-center gap-2 font-bold text-2xl text-titan-accent">
+          <div className="flex items-center gap-2 font-bold font-serif text-2xl text-titan-accent">
             <Globe />
-            <span>GenSite AI</span>
+            <span>OpsVantage Digital</span>
           </div>
           <button onClick={() => setView('auth')} className="bg-titan-accent text-white px-6 py-2 rounded-full font-medium hover:bg-blue-500 transition">
             Get Started
@@ -126,7 +126,7 @@ export default function AILab() {
           <div className="inline-block bg-titan-accent/10 text-titan-accent px-4 py-2 rounded-full text-sm font-bold mb-6">
             THE FUTURE OF WEB DESIGN
           </div>
-          <h1 className="text-6xl md:text-8xl font-black text-white mb-8 tracking-tighter">
+          <h1 className="text-6xl md:text-8xl font-black font-serif text-white mb-8 tracking-tighter">
             Websites that <br /><span className="text-titan-accent">build themselves.</span>
           </h1>
           <p className="text-xl text-slate-300 max-w-2xl mx-auto mb-12 leading-relaxed">
@@ -151,8 +151,8 @@ export default function AILab() {
         <div className="bg-titan-900 p-8 md:p-12 rounded-3xl shadow-2xl max-w-md w-full border border-titan-800 animate-in fade-in zoom-in duration-300">
           <div className="text-center mb-10">
             <div className="flex justify-center mb-4 text-titan-accent"><Globe /></div>
-            <h2 className="text-3xl font-bold text-white">Create Account</h2>
-            <p className="text-slate-400 mt-2">Join thousands of businesses using GenSite.</p>
+            <h2 className="text-3xl font-bold font-serif text-white">Create Account</h2>
+            <p className="text-slate-400 mt-2">Join thousands of businesses using OpsVantage Digital.</p>
           </div>
           <form onSubmit={handleAuth} className="space-y-4">
             <div>
@@ -179,9 +179,9 @@ export default function AILab() {
     return (
       <div className="min-h-screen bg-titan-950 flex">
         <aside className="w-72 bg-titan-900 border-r border-titan-800 p-8 hidden lg:flex flex-col">
-          <div className="flex items-center gap-2 font-bold text-2xl text-titan-accent mb-12">
+          <div className="flex items-center gap-2 font-bold font-serif text-2xl text-titan-accent mb-12">
             <Globe />
-            <span>GenSite</span>
+            <span>OpsVantage</span>
           </div>
           <nav className="space-y-2 flex-1">
             <button className="w-full flex items-center gap-3 px-4 py-3 bg-titan-accent/10 text-titan-accent rounded-xl font-bold transition">
@@ -202,7 +202,7 @@ export default function AILab() {
         <main className="flex-1 p-8 md:p-12 overflow-y-auto">
           <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
             <div>
-              <h1 className="text-4xl font-black text-white tracking-tight">Project Dashboard</h1>
+              <h1 className="text-4xl font-black font-serif text-white tracking-tight">Project Dashboard</h1>
               <p className="text-slate-400 text-lg mt-1">Design, manage and scale your web presence.</p>
             </div>
             <button 
@@ -218,7 +218,7 @@ export default function AILab() {
               <div className="w-20 h-20 bg-titan-accent/10 text-titan-accent rounded-3xl flex items-center justify-center mx-auto mb-8">
                 <Layout />
               </div>
-              <h3 className="text-2xl font-bold mb-3 text-white">Your portfolio is empty</h3>
+              <h3 className="text-2xl font-bold font-serif mb-3 text-white">Your portfolio is empty</h3>
               <p className="text-slate-400 mb-10 max-w-sm mx-auto text-lg">Launch your first AI-generated website in under 2 minutes.</p>
               <button 
                 onClick={() => setView('builder')}
@@ -293,7 +293,7 @@ export default function AILab() {
                     <div className="w-20 h-20 bg-titan-accent rounded-3xl flex items-center justify-center mb-8 shadow-2xl shadow-titan-accent/40">
                       <Magic />
                     </div>
-                    <h2 className="text-3xl font-black text-white mb-3">Build with AI</h2>
+                    <h2 className="text-3xl font-black font-serif text-white mb-3">Build with AI</h2>
                     <p className="text-slate-400 leading-relaxed">Describe your vision and watch our AI craft a professional website for you instantly.</p>
                   </div>
                   
@@ -410,7 +410,7 @@ export default function AILab() {
                        <Magic />
                     </div>
                   </div>
-                  <h2 className="text-4xl font-black text-white mb-4 tracking-tighter">Building Your Digital Empire</h2>
+                  <h2 className="text-4xl font-black font-serif text-white mb-4 tracking-tighter">Building Your Digital Empire</h2>
                   <p className="text-slate-400 text-lg max-w-sm mx-auto animate-pulse">{["Analyzing niche...", "Planning structure...", "Writing copy...", "Choosing assets...", "Applying styles..."][generationStep]}</p>
                </div>
              ) : activeSite ? (
